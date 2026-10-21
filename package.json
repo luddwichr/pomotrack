@@ -1,0 +1,27 @@
+{
+  "name": "pomotrack",
+  "private": true,
+  "description": "Pomodoro timer and task time tracker",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "serve": "node scripts/serve.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "npm run typecheck && playwright test",
+    "screenshots": "npm run typecheck && playwright test e2e/screenshots.spec.ts --update-snapshots=changed",
+    "format": "oxfmt"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.19.2",
+    "oxfmt": "0.74.0",
+    "typescript": "7.0.2"
+  },
+  "overrides": {
+    "playwright-core": "$@playwright/test"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

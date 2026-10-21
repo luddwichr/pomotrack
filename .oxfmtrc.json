@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": false,
+  "singleQuote": true,
+  "printWidth": 120,
+  "proseWrap": "preserve", // do not change this to "always" as it will break intended formatting of markdown files
+  "jsdoc": {
+    "lineWrappingStyle": "balance"
+  },
+  "trailingComma": "all"
+}

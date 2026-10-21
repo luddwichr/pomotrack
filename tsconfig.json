@@ -1,0 +1,29 @@
+{
+  // The app itself is plain JavaScript in index.html and sw.js. TypeScript covers the e2e suite and tooling.
+  "compilerOptions": {
+    "target": "ES2025",
+    "lib": ["ES2025", "DOM"],
+    "types": ["node"],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+    "erasableSyntaxOnly": true,
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false
+  },
+  "include": ["e2e/**/*.ts", "scripts/**/*.ts", "playwright*.config.ts"]
+}

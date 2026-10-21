@@ -1,0 +1,2838 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Pomotrack</title>
+    <meta name="description" content="Pomodoro timer and task time tracker. Works offline, stores data locally." />
+    <meta name="theme-color" content="#f7faff" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%231976d2'/%3E%3Ccircle cx='256' cy='276' r='132' fill='none' stroke='%23bbdefb' stroke-width='36'/%3E%3Cpath d='M256 276V196' stroke='%23fff' stroke-width='36' stroke-linecap='round'/%3E%3Crect x='212' y='100' width='88' height='36' rx='18' fill='%23bbdefb'/%3E%3C/svg%3E"
+    />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <style>
+      :root {
+        --font: Roboto, 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+        --radius-xl: 28px;
+        --radius-l: 16px;
+        --radius-m: 12px;
+        --radius-full: 999px;
+        --ease: cubic-bezier(0.2, 0, 0, 1);
+        --error: #ba1a1a;
+        --inverse-surface: #322f35;
+        --inverse-on-surface: #f5eff7;
+        --scrim: rgb(0 0 0 / 0.32);
+        --shadow-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
+        --shadow-3: 0 1px 3px rgb(0 0 0 / 0.3), 0 4px 8px 3px rgb(0 0 0 / 0.15);
+      }
+      body[data-mode='focus'] {
+        --primary: #1565c0;
+        --on-primary: #fff;
+        --primary-container: #bbdefb;
+        --on-primary-container: #0d47a1;
+        --surface: #f7faff;
+        --surface-low: #eef4fc;
+        --surface-mid: #e6eef9;
+        --surface-high: #dee8f5;
+        --on-surface: #181c22;
+        --on-surface-variant: #42474f;
+        --outline: #72777f;
+        --outline-variant: #c2c7cf;
+      }
+      body[data-mode='short'] {
+        --primary: #2a7130;
+        --on-primary: #fff;
+        --primary-container: #c8e6c9;
+        --on-primary-container: #1b5e20;
+        --surface: #f7fbf5;
+        --surface-low: #eff5ed;
+        --surface-mid: #e8f0e6;
+        --surface-high: #e1eadf;
+        --on-surface: #181d18;
+        --on-surface-variant: #414941;
+        --outline: #717970;
+        --outline-variant: #c1c9be;
+      }
+      body[data-mode='long'] {
+        --primary: #6e6610;
+        --on-primary: #fff;
+        --primary-container: #e6ee9c;
+        --on-primary-container: #3a3500;
+        --surface: #fbfbf2;
+        --surface-low: #f5f5e7;
+        --surface-mid: #efefe0;
+        --surface-high: #e9e9d9;
+        --on-surface: #1c1c16;
+        --on-surface-variant: #47473b;
+        --outline: #78786a;
+        --outline-variant: #c9c8b6;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --error: #ffb4ab;
+          --inverse-surface: #e6e0e9;
+          --inverse-on-surface: #322f35;
+        }
+        body[data-mode='focus'] {
+          --primary: #90caf9;
+          --on-primary: #003258;
+          --primary-container: #0d47a1;
+          --on-primary-container: #bbdefb;
+          --surface: #111418;
+          --surface-low: #191c20;
+          --surface-mid: #1d2024;
+          --surface-high: #272a2f;
+          --on-surface: #e1e2e8;
+          --on-surface-variant: #c2c7cf;
+          --outline: #8c9199;
+          --outline-variant: #42474f;
+        }
+        body[data-mode='short'] {
+          --primary: #a5d6a7;
+          --on-primary: #00390a;
+          --primary-container: #1b5e20;
+          --on-primary-container: #c8e6c9;
+          --surface: #10140f;
+          --surface-low: #181d17;
+          --surface-mid: #1c211b;
+          --surface-high: #262b25;
+          --on-surface: #e0e4dc;
+          --on-surface-variant: #c1c9be;
+          --outline: #8b9389;
+          --outline-variant: #414941;
+        }
+        body[data-mode='long'] {
+          --primary: #dce775;
+          --on-primary: #2e3200;
+          --primary-container: #4f5500;
+          --on-primary-container: #e6ee9c;
+          --surface: #13140e;
+          --surface-low: #1b1c16;
+          --surface-mid: #1f201a;
+          --surface-high: #2a2a24;
+          --on-surface: #e5e3d9;
+          --on-surface-variant: #c9c8b6;
+          --outline: #929282;
+          --outline-variant: #47473b;
+        }
+      }
+
+      dialog {
+        --primary: #1565c0;
+        --on-primary: #fff;
+        --surface-low: #f3f3f6;
+        --surface-high: #fff;
+        --on-surface: #1a1c1e;
+        --on-surface-variant: #44474e;
+        --outline: #74777f;
+        --outline-variant: #c4c6cf;
+      }
+      @media (prefers-color-scheme: dark) {
+        dialog {
+          --primary: #a8c8ff;
+          --on-primary: #003062;
+          --surface-low: #1a1c1e;
+          --surface-high: #282a2d;
+          --on-surface: #e2e2e6;
+          --on-surface-variant: #c4c6cf;
+          --outline: #8e9099;
+          --outline-variant: #44474e;
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        font: 400 1rem/1.5 var(--font);
+        color: var(--on-surface);
+        background: var(--surface);
+        transition:
+          background-color 0.5s var(--ease),
+          color 0.5s var(--ease);
+        -webkit-font-smoothing: antialiased;
+      }
+      button,
+      input,
+      textarea {
+        font: inherit;
+        color: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      :focus-visible {
+        outline: 3px solid var(--primary);
+        outline-offset: 2px;
+      }
+      .visually-hidden {
+        position: absolute !important;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      .skip-link {
+        position: absolute;
+        left: 16px;
+        top: -100px;
+        z-index: 100;
+        padding: 8px 16px;
+        border-radius: var(--radius-full);
+        background: var(--primary);
+        color: var(--on-primary);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .skip-link:focus {
+        top: 12px;
+      }
+      svg.icon {
+        width: 24px;
+        height: 24px;
+        fill: currentColor;
+        flex: none;
+      }
+      kbd {
+        display: inline-block;
+        min-width: 1.8em;
+        padding: 1px 6px;
+        text-align: center;
+        font:
+          500 0.8125rem/1.5 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          Consolas,
+          monospace;
+        border: 1px solid var(--outline-variant);
+        border-bottom-width: 2px;
+        border-radius: 6px;
+        background: var(--surface-low);
+        color: var(--on-surface);
+      }
+
+      .state-layer {
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+      }
+      .state-layer::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        border-radius: inherit;
+        background: currentColor;
+        opacity: 0;
+        transition: opacity 0.15s linear;
+        pointer-events: none;
+      }
+      .state-layer:hover::before {
+        opacity: 0.08;
+      }
+      .state-layer:focus-visible::before {
+        opacity: 0.1;
+      }
+      .state-layer:active::before {
+        opacity: 0.12;
+      }
+      .state-layer:disabled {
+        cursor: default;
+        opacity: 0.38;
+      }
+      .state-layer:disabled::before {
+        opacity: 0;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 40px;
+        padding: 0 24px;
+        border: 0;
+        border-radius: var(--radius-full);
+        font-weight: 500;
+        font-size: 0.875rem;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+        background: transparent;
+        color: var(--primary);
+      }
+      .btn .icon {
+        width: 18px;
+        height: 18px;
+        margin-left: -8px;
+      }
+      .btn.filled {
+        background: var(--primary);
+        color: var(--on-primary);
+      }
+      .btn.filled:hover {
+        box-shadow: var(--shadow-1);
+      }
+      .btn.tonal {
+        background: var(--primary-container);
+        color: var(--on-primary-container);
+      }
+      .btn.outlined {
+        border: 1px solid var(--outline);
+      }
+      .btn.text {
+        padding: 0 12px;
+      }
+      .btn.text .icon {
+        margin-left: -4px;
+      }
+      .btn.danger {
+        color: var(--error);
+      }
+      .btn.danger.outlined {
+        border-color: var(--error);
+      }
+      .icon-btn {
+        display: inline-grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border: 0;
+        border-radius: var(--radius-full);
+        background: transparent;
+        color: var(--on-surface-variant);
+      }
+      .icon-btn.tonal {
+        background: var(--surface-high);
+        color: var(--on-surface);
+      }
+
+      .top-bar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 12px 16px;
+        padding-top: max(12px, env(safe-area-inset-top));
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 auto 0 0;
+        font-size: 1.375rem;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+      }
+      .brand svg {
+        width: 32px;
+        height: 32px;
+      }
+      .layout {
+        display: grid;
+        gap: 16px;
+        align-items: start;
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 16px 32px;
+        padding-bottom: max(32px, env(safe-area-inset-bottom));
+      }
+      @media (min-width: 900px) {
+        .layout {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 24px;
+        }
+        .timer-card {
+          position: sticky;
+          top: 16px;
+        }
+      }
+      .card {
+        background: var(--surface-low);
+        border-radius: var(--radius-xl);
+        transition: background-color 0.5s var(--ease);
+      }
+
+      .timer-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        padding: 24px 16px 28px;
+      }
+      .dial {
+        position: relative;
+        width: min(78vw, 320px);
+        aspect-ratio: 1;
+        display: grid;
+        place-items: center;
+      }
+      .dial svg.ring {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+      }
+      .ring circle {
+        fill: none;
+        stroke-width: 3.5;
+      }
+      .ring .track {
+        stroke: var(--surface-high);
+      }
+      .ring .bar {
+        stroke: var(--primary);
+        stroke-linecap: round;
+        stroke-dasharray: 100;
+        transition:
+          stroke-dashoffset 0.3s linear,
+          stroke 0.5s var(--ease);
+      }
+      .dial-center {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+      .time,
+      .time-input {
+        font-size: clamp(3.5rem, 17vw, 5.25rem);
+        font-weight: 400;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+        border: 0;
+        border-radius: var(--radius-l);
+        color: var(--on-surface);
+      }
+      .time {
+        padding: 4px 16px;
+        background: transparent;
+        cursor: text;
+      }
+      .time:disabled {
+        cursor: default;
+      }
+      .time:enabled:hover {
+        text-decoration: underline dotted var(--outline) 2px;
+        text-underline-offset: 10px;
+      }
+      .time-input {
+        width: 5.2ch;
+        padding: 2px 8px;
+        background: var(--surface-high);
+        outline: 2px solid var(--primary);
+        outline-offset: 0;
+      }
+      .time.hours,
+      .time-input.hours {
+        font-size: clamp(2.5rem, 12vw, 3.75rem);
+      }
+      .time-input.hours {
+        width: 8.2ch;
+      }
+      .time-input[aria-invalid='true'] {
+        outline-color: var(--error);
+        animation: shake 0.3s;
+      }
+      @keyframes shake {
+        25% {
+          transform: translateX(-6px);
+        }
+        75% {
+          transform: translateX(6px);
+        }
+      }
+      .dial-label {
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--on-surface-variant);
+      }
+      .edit-hint {
+        position: absolute;
+        bottom: 18%;
+        margin: 0;
+        font-size: 0.75rem;
+        color: var(--on-surface-variant);
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .dial:hover .edit-hint,
+      .dial:focus-within .edit-hint {
+        opacity: 1;
+      }
+      @media (hover: none) {
+        .edit-hint {
+          opacity: 1;
+        }
+      }
+
+      /* The main button stays centered. Skip sits to its right, and only shows before Start. */
+      .controls {
+        display: grid;
+        grid-template-columns: 56px auto 56px;
+        align-items: center;
+        gap: 20px;
+      }
+      .controls .start-btn {
+        grid-column: 2;
+      }
+      .controls .icon-btn {
+        width: 56px;
+        height: 56px;
+      }
+      .start-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-width: 156px;
+        height: 72px;
+        padding: 0 32px;
+        border: 0;
+        border-radius: 24px;
+        background: var(--primary);
+        color: var(--on-primary);
+        font-size: 1.25rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        box-shadow: var(--shadow-1);
+        transition:
+          border-radius 0.25s var(--ease),
+          box-shadow 0.2s,
+          background-color 0.5s var(--ease);
+      }
+      .start-btn:hover {
+        box-shadow: var(--shadow-3);
+      }
+      .start-btn.running {
+        border-radius: var(--radius-full);
+      }
+      .start-btn .icon {
+        width: 28px;
+        height: 28px;
+      }
+      /* Narrow phones, down to 320 px */
+      @media (max-width: 380px) {
+        .timer-card {
+          padding-inline: 8px;
+        }
+        .controls {
+          grid-template-columns: 48px auto 48px;
+          gap: 12px;
+        }
+        .controls .icon-btn {
+          width: 48px;
+          height: 48px;
+        }
+        .start-btn {
+          min-width: 136px;
+          padding: 0 24px;
+        }
+      }
+
+      .round {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        color: var(--on-surface-variant);
+        font-size: 0.875rem;
+      }
+      .dots {
+        display: flex;
+        gap: 6px;
+      }
+      .dots span {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 2px solid var(--outline);
+      }
+      .dots span.done {
+        background: var(--primary);
+        border-color: var(--primary);
+      }
+      .dots span.now {
+        border-color: var(--primary);
+      }
+
+      .current-task {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        max-width: 420px;
+        padding: 10px 10px 10px 18px;
+        border-radius: var(--radius-l);
+        background: var(--surface-mid);
+      }
+      .current-task p {
+        flex: 1;
+        min-width: 0;
+        margin: 0;
+        font-size: 0.875rem;
+        color: var(--on-surface-variant);
+      }
+      .current-task strong {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 1rem;
+        font-weight: 500;
+        color: var(--on-surface);
+      }
+
+      .tasks-card {
+        padding: 20px 16px 16px;
+      }
+      .section-head {
+        display: flex;
+        align-items: center;
+        min-height: 40px;
+        padding: 0 4px 0 8px;
+        margin-bottom: 8px;
+      }
+      .section-head h2 {
+        margin: 0;
+        font-size: 1.375rem;
+        font-weight: 400;
+      }
+      .task-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .task {
+        position: relative;
+        display: flex;
+        align-items: flex-start;
+        gap: 4px;
+        padding: 8px 4px 8px 2px;
+        border-radius: var(--radius-l);
+        background: var(--surface);
+        transition:
+          background-color 0.2s,
+          box-shadow 0.2s;
+      }
+      .task::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 12px;
+        bottom: 12px;
+        width: 4px;
+        border-radius: 0 4px 4px 0;
+        background: var(--primary);
+        transform: scaleY(0);
+        transition: transform 0.2s var(--ease);
+      }
+      .task.active {
+        background: var(--primary-container);
+        color: var(--on-primary-container);
+      }
+      .task.active::after {
+        transform: scaleY(1);
+      }
+      .task:has(.task-radio:focus-visible) {
+        outline: 3px solid var(--primary);
+        outline-offset: 2px;
+      }
+      .task-main {
+        flex: 1;
+        min-width: 0;
+        padding: 8px 4px;
+        cursor: pointer;
+      }
+      .task-title {
+        display: block;
+        font-weight: 500;
+        overflow-wrap: anywhere;
+      }
+      .task-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 12px;
+        margin-top: 2px;
+        font-size: 0.8125rem;
+        color: var(--on-surface-variant);
+      }
+      .task.active .task-meta,
+      .task.active .task-notes {
+        color: inherit;
+      }
+      .task-meta span {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .task-meta .icon {
+        width: 16px;
+        height: 16px;
+      }
+      .task-notes {
+        margin: 6px 0 0;
+        font-size: 0.875rem;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        color: var(--on-surface-variant);
+      }
+      .task-actions {
+        display: flex;
+        flex: none;
+      }
+      .task .icon-btn {
+        color: inherit;
+        opacity: 0.8;
+      }
+      .drag-handle {
+        width: 28px;
+        margin-right: -4px;
+        touch-action: none;
+        cursor: grab;
+        border-radius: 8px;
+      }
+      .task.dragging {
+        z-index: 2;
+        box-shadow: var(--shadow-3);
+        transition: none;
+      }
+      body.is-dragging,
+      body.is-dragging * {
+        cursor: grabbing !important;
+        user-select: none;
+      }
+
+      /* A button that looks like an empty checkbox. Finished tasks leave the list, so it never shows a checked state. */
+      .checkbox {
+        position: relative;
+        display: grid;
+        place-items: center;
+        flex: none;
+        width: 40px;
+        height: 40px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+      }
+      .checkbox:hover {
+        background: color-mix(in srgb, currentColor 8%, transparent);
+      }
+      .checkbox::before {
+        content: '';
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--on-surface-variant);
+        border-radius: 2px;
+      }
+      .checkbox:hover::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: 14px;
+        height: 14px;
+        background: var(--on-surface-variant);
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E")
+          center / contain no-repeat;
+      }
+
+      .empty {
+        margin: 8px;
+        padding: 24px 16px;
+        text-align: center;
+        color: var(--on-surface-variant);
+        border-radius: var(--radius-l);
+      }
+      .add-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        height: 56px;
+        margin-top: 8px;
+        border: 2px dashed var(--outline-variant);
+        border-radius: var(--radius-l);
+        background: transparent;
+        color: var(--on-surface-variant);
+        font-weight: 500;
+      }
+      .add-btn:hover {
+        border-color: var(--outline);
+      }
+
+      .task-form {
+        display: grid;
+        gap: 16px;
+        margin-top: 8px;
+        padding: 20px 16px 16px;
+        border-radius: var(--radius-l);
+        background: var(--surface);
+        box-shadow: var(--shadow-1);
+      }
+      .task .task-form {
+        flex: 1;
+        margin: 0;
+        box-shadow: none;
+        padding: 12px 8px 8px;
+        background: transparent;
+      }
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+      .field > label,
+      .field-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        letter-spacing: 0.03em;
+        color: var(--on-surface-variant);
+      }
+      .field :is(input, textarea) {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid var(--outline);
+        border-radius: 4px;
+        background: transparent;
+        color: var(--on-surface);
+        font-size: 1rem;
+      }
+      .field textarea {
+        resize: vertical;
+        min-height: 64px;
+        line-height: 1.4;
+      }
+      .field input:focus,
+      .field textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: inset 0 0 0 1px var(--primary);
+      }
+      .field input[aria-invalid='true'] {
+        border-color: var(--error);
+        box-shadow: inset 0 0 0 1px var(--error);
+      }
+      .stepper {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .stepper input {
+        width: 72px;
+        text-align: center;
+        -moz-appearance: textfield;
+      }
+      .stepper input::-webkit-inner-spin-button,
+      .stepper input::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+      .helper {
+        margin: 0;
+        font-size: 0.75rem;
+        color: var(--on-surface-variant);
+      }
+
+      .summary {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px 16px;
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-radius: var(--radius-l);
+        background: var(--surface-mid);
+        font-size: 0.875rem;
+        color: var(--on-surface-variant);
+      }
+      .summary strong {
+        color: var(--on-surface);
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .history {
+        margin-top: 12px;
+      }
+      .history > summary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        min-height: 40px;
+        padding: 0 16px 0 8px;
+        border-radius: var(--radius-full);
+        list-style: none;
+        cursor: pointer;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--on-surface-variant);
+      }
+      .history > summary::-webkit-details-marker {
+        display: none;
+      }
+      .history .chev {
+        width: 20px;
+        height: 20px;
+        transition: transform 0.2s var(--ease);
+      }
+      .history[open] .chev {
+        transform: rotate(180deg);
+      }
+      .history-count {
+        font-weight: 400;
+      }
+      .history-day h3 {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 2px 12px;
+        margin: 16px 12px 4px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--on-surface-variant);
+      }
+      .history-day .day-meta {
+        font-weight: 400;
+        font-variant-numeric: tabular-nums;
+      }
+      .history-day ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .history-none {
+        margin: 0 12px;
+        font-size: 0.8125rem;
+        color: var(--on-surface-variant);
+      }
+      .history-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px 2px 12px;
+        border-radius: var(--radius-m);
+        font-size: 0.875rem;
+        color: var(--on-surface-variant);
+      }
+      .history-item .h-main {
+        flex: 1;
+        min-width: 0;
+        padding: 6px 0;
+      }
+      .history-item .h-title {
+        display: block;
+        color: var(--on-surface);
+        overflow-wrap: anywhere;
+      }
+      .history-item .h-notes {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        white-space: pre-wrap;
+        font-size: 0.8125rem;
+      }
+      .history-item .h-meta {
+        flex: none;
+        padding: 0 4px;
+        font-size: 0.8125rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      dialog {
+        width: min(560px, calc(100vw - 32px));
+        max-height: calc(100dvh - 48px);
+        padding: 0;
+        border: 0;
+        border-radius: var(--radius-xl);
+        background: var(--surface-high);
+        color: var(--on-surface);
+        box-shadow: var(--shadow-3);
+      }
+      dialog::backdrop {
+        background: var(--scrim);
+      }
+      dialog[open] {
+        animation: pop 0.2s var(--ease);
+      }
+      @keyframes pop {
+        from {
+          opacity: 0;
+          transform: scale(0.96);
+        }
+      }
+      .dialog-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 20px 12px 8px 24px;
+      }
+      .dialog-head h2 {
+        flex: 1;
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 400;
+      }
+      .dialog-body {
+        padding: 8px 24px 16px;
+      }
+      .dialog-body h3 {
+        margin: 16px 0 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        color: var(--primary);
+      }
+      .dialog-body h3:first-child {
+        margin-top: 0;
+      }
+      .dialog-foot {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 8px 24px 20px;
+      }
+      .setting-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        min-height: 56px;
+      }
+      .setting-row > div {
+        flex: 1;
+      }
+      .setting-row label {
+        display: block;
+      }
+      .setting-row .helper {
+        margin-top: 2px;
+      }
+      .setting-row .helper.error {
+        color: var(--error);
+      }
+      .data-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .switch {
+        appearance: none;
+        -webkit-appearance: none;
+        position: relative;
+        flex: none;
+        margin: 0;
+        width: 52px;
+        height: 32px;
+        border-radius: var(--radius-full);
+        cursor: pointer;
+        background: var(--surface-high);
+        border: 2px solid var(--outline);
+        transition:
+          background-color 0.2s,
+          border-color 0.2s;
+      }
+      .switch::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 6px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--outline);
+        transform: translateY(-50%);
+        transition: all 0.2s var(--ease);
+      }
+      .switch:checked {
+        background: var(--primary);
+        border-color: var(--primary);
+      }
+      .switch:checked::before {
+        left: 22px;
+        width: 24px;
+        height: 24px;
+        background: var(--on-primary);
+      }
+
+      .shortcut-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .shortcut-table th,
+      .shortcut-table td {
+        padding: 8px 0;
+        text-align: left;
+        border-bottom: 1px solid var(--outline-variant);
+        font-weight: 400;
+      }
+      .shortcut-table td {
+        text-align: right;
+        white-space: nowrap;
+      }
+      .shortcut-table tr:last-child > * {
+        border-bottom: 0;
+      }
+
+      .snackbar {
+        position: fixed;
+        left: 50%;
+        bottom: max(24px, env(safe-area-inset-bottom));
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        width: max-content;
+        max-width: calc(100vw - 32px);
+        min-height: 48px;
+        padding: 4px 16px;
+        border-radius: 4px;
+        background: var(--inverse-surface);
+        color: var(--inverse-on-surface);
+        box-shadow: var(--shadow-3);
+        font-size: 0.875rem;
+        transform: translate(-50%, 24px);
+        opacity: 0;
+        visibility: hidden;
+        transition:
+          transform 0.25s var(--ease),
+          opacity 0.2s,
+          visibility 0s 0.25s;
+      }
+      .snackbar.show {
+        transform: translate(-50%, 0);
+        opacity: 1;
+        visibility: visible;
+        transition-delay: 0s;
+      }
+      .snackbar p {
+        margin: 0;
+        padding: 10px 0;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+      @media (forced-colors: active) {
+        .ring .bar {
+          stroke: Highlight;
+        }
+        .task.active {
+          outline: 2px solid Highlight;
+        }
+        .switch:checked::before,
+        .dots span.done {
+          background: Highlight;
+        }
+      }
+    </style>
+  </head>
+  <body data-mode="focus">
+    <a class="skip-link" href="#tasks-heading">Skip to tasks</a>
+
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></symbol>
+      <symbol id="i-skip" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" /></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24">
+        <path
+          d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"
+        />
+      </symbol>
+      <symbol id="i-keyboard" viewBox="0 0 24 24">
+        <path
+          d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"
+        />
+      </symbol>
+      <symbol id="i-add" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></symbol>
+      <symbol id="i-remove" viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z" /></symbol>
+      <symbol id="i-delete" viewBox="0 0 24 24">
+        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+      </symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24">
+        <path
+          d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+        />
+      </symbol>
+      <symbol id="i-done-all" viewBox="0 0 24 24">
+        <path
+          d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"
+        />
+      </symbol>
+      <symbol id="i-close" viewBox="0 0 24 24">
+        <path
+          d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+        />
+      </symbol>
+      <symbol id="i-timer" viewBox="0 0 24 24">
+        <path
+          d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42C16.07 4.74 14.12 4 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"
+        />
+      </symbol>
+      <symbol id="i-schedule" viewBox="0 0 24 24">
+        <path
+          d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"
+        />
+      </symbol>
+      <symbol id="i-drag" viewBox="0 0 24 24">
+        <path
+          d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
+        />
+      </symbol>
+      <symbol id="i-expand" viewBox="0 0 24 24"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z" /></symbol>
+      <symbol id="i-install" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></symbol>
+    </svg>
+
+    <header class="top-bar">
+      <h1 class="brand">
+        <svg viewBox="0 0 512 512" aria-hidden="true">
+          <rect width="512" height="512" rx="112" fill="var(--primary)" />
+          <circle cx="256" cy="276" r="132" fill="none" stroke="var(--primary-container)" stroke-width="36" />
+          <path d="M256 276V196" stroke="var(--on-primary)" stroke-width="36" stroke-linecap="round" />
+          <rect x="212" y="100" width="88" height="36" rx="18" fill="var(--primary-container)" />
+        </svg>
+        Pomotrack
+      </h1>
+      <button class="btn text state-layer" id="installBtn" type="button" hidden>
+        <svg class="icon"><use href="#i-install" /></svg>Install
+      </button>
+      <button
+        class="icon-btn state-layer"
+        id="shortcutsBtn"
+        type="button"
+        aria-label="Keyboard shortcuts"
+        title="Keyboard shortcuts (?)"
+      >
+        <svg class="icon"><use href="#i-keyboard" /></svg>
+      </button>
+      <button class="icon-btn state-layer" id="settingsBtn" type="button" aria-label="Settings" title="Settings">
+        <svg class="icon"><use href="#i-settings" /></svg>
+      </button>
+    </header>
+
+    <main class="layout">
+      <section class="card timer-card" aria-labelledby="timer-heading">
+        <h2 id="timer-heading" class="visually-hidden">Timer</h2>
+
+        <div class="dial">
+          <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+            <circle class="track" cx="50" cy="50" r="46" />
+            <circle class="bar" id="ringBar" cx="50" cy="50" r="46" pathLength="100" stroke-dashoffset="100" />
+          </svg>
+          <div class="dial-center">
+            <button type="button" class="time" id="timeBtn" aria-describedby="editHint">25:00</button>
+            <input
+              type="text"
+              class="time-input"
+              id="timeInput"
+              hidden
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="Set time for this interval, minutes or mm:ss"
+              aria-describedby="timeInputHelp"
+            />
+            <p class="dial-label" id="modeLabel">Focus</p>
+          </div>
+          <p class="edit-hint" id="editHint">Click to change this interval</p>
+          <p class="visually-hidden" id="timeInputHelp">
+            Type minutes like 15, or minutes and seconds like 15:30. Enter to apply, Escape to cancel, arrow keys move
+            to the next or previous whole minute.
+          </p>
+        </div>
+
+        <div class="controls">
+          <button type="button" class="start-btn state-layer" id="startBtn" title="Start (Space)">
+            <svg class="icon"><use href="#i-play" /></svg><span>Start</span>
+          </button>
+          <button
+            type="button"
+            class="icon-btn tonal state-layer"
+            id="skipBtn"
+            aria-label="Skip to next step"
+            title="Skip to next step (S)"
+          >
+            <svg class="icon"><use href="#i-skip" /></svg>
+          </button>
+        </div>
+
+        <p class="round"><span class="dots" id="dots" aria-hidden="true"></span><span id="roundText"></span></p>
+
+        <div class="current-task">
+          <p id="currentTaskText"></p>
+          <button type="button" class="btn tonal state-layer" id="finishBtn" title="Finish task (F)">
+            <svg class="icon"><use href="#i-done-all" /></svg>Finish
+          </button>
+        </div>
+      </section>
+
+      <section class="card tasks-card" aria-labelledby="tasks-heading">
+        <div class="section-head">
+          <h2 id="tasks-heading" tabindex="-1">Tasks</h2>
+        </div>
+        <ul class="task-list" id="taskList" aria-labelledby="tasks-heading"></ul>
+        <p class="visually-hidden" id="dragHelp">Drag to reorder, or press the up and down arrow keys.</p>
+        <p class="empty" id="emptyState" hidden></p>
+        <button type="button" class="add-btn state-layer" id="addBtn" title="Add task (N)">
+          <svg class="icon"><use href="#i-add" /></svg>Add task
+        </button>
+        <div id="addFormSlot"></div>
+        <div class="summary" id="summary" aria-live="off"></div>
+        <details class="history" id="history" hidden>
+          <summary class="state-layer" title="History (H)">
+            <svg class="icon chev" aria-hidden="true"><use href="#i-expand" /></svg>History
+            <span class="history-count" id="historyCount"></span>
+          </summary>
+          <div id="historyBody"></div>
+        </details>
+      </section>
+    </main>
+
+    <dialog id="settingsDialog" aria-labelledby="settings-title">
+      <div class="dialog-head">
+        <h2 id="settings-title">Settings</h2>
+        <button type="button" class="icon-btn state-layer" data-close aria-label="Close settings">
+          <svg class="icon"><use href="#i-close" /></svg>
+        </button>
+      </div>
+      <form class="dialog-body" id="settingsForm">
+        <h3>Alerts</h3>
+        <div class="setting-row">
+          <div>
+            <label for="set-notify">Browser notifications</label>
+            <p class="helper" id="notifyHelp">Shown when an interval ends and this window is not focused.</p>
+            <p class="helper error" id="notifyBlocked" hidden>
+              This browser does not allow notifications right now. Check the notification permission in your browser
+              site settings.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            class="switch"
+            role="switch"
+            id="set-notify"
+            name="notify"
+            aria-describedby="notifyHelp"
+          />
+        </div>
+        <div class="setting-row">
+          <div><label for="set-sound">Sound</label></div>
+          <input type="checkbox" class="switch" role="switch" id="set-sound" name="sound" />
+        </div>
+
+        <h3>Data</h3>
+        <p class="helper" style="margin-bottom: 12px">Everything is stored in this browser only.</p>
+        <div class="data-actions">
+          <button type="button" class="btn outlined state-layer" id="exportBtn">Export JSON</button>
+          <button type="button" class="btn outlined state-layer" id="importBtn">Import JSON</button>
+          <button type="button" class="btn outlined danger state-layer" id="wipeBtn">Delete all data</button>
+        </div>
+      </form>
+      <!-- Outside the settings form, whose change handler takes every input in it for a setting -->
+      <input type="file" id="importFile" accept="application/json,.json" hidden />
+      <div class="dialog-foot">
+        <button type="button" class="btn filled state-layer" data-close>Done</button>
+      </div>
+    </dialog>
+
+    <dialog id="shortcutsDialog" aria-labelledby="shortcuts-title">
+      <div class="dialog-head">
+        <h2 id="shortcuts-title">Keyboard shortcuts</h2>
+        <button type="button" class="icon-btn state-layer" data-close aria-label="Close">
+          <svg class="icon"><use href="#i-close" /></svg>
+        </button>
+      </div>
+      <div class="dialog-body">
+        <table class="shortcut-table">
+          <tbody>
+            <tr>
+              <th scope="row">Start</th>
+              <td><kbd>Space</kbd></td>
+            </tr>
+            <tr>
+              <th scope="row">Skip to next step</th>
+              <td><kbd>S</kbd></td>
+            </tr>
+            <tr>
+              <th scope="row">Edit time of this interval, before Start</th>
+              <td><kbd>E</kbd></td>
+            </tr>
+            <tr>
+              <th scope="row">New task</th>
+              <td><kbd>N</kbd></td>
+            </tr>
+            <tr>
+              <th scope="row">Finish current task</th>
+              <td><kbd>F</kbd></td>
+            </tr>
+            <tr>
+              <th scope="row">Select next or previous task</th>
+              <td><kbd>J</kbd> <kbd>K</kbd></td>
+            </tr>
+            <tr>
+              <th scope="row">Move task (on its drag handle)</th>
+              <td><kbd>&uarr;</kbd> <kbd>&darr;</kbd></td>
+            </tr>
+            <tr>
+              <th scope="row">Show or hide history</th>
+              <td><kbd>H</kbd></td>
+            </tr>
+            <tr>
+              <th scope="row">Show this list</th>
+              <td><kbd>?</kbd></td>
+            </tr>
+            <tr>
+              <th scope="row">Cancel editing, close dialog</th>
+              <td><kbd>Esc</kbd></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="helper" style="margin-top: 12px">
+          Shortcuts are paused while you type in a text field or a task form.
+        </p>
+      </div>
+    </dialog>
+
+    <dialog id="confirmDialog" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+      <div class="dialog-head"><h2 id="confirm-title">Delete all data?</h2></div>
+      <div class="dialog-body">
+        <p id="confirm-text" style="margin: 0">
+          All tasks, notes, tracked time and settings will be removed from this browser. This cannot be undone.
+        </p>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" class="btn text state-layer" data-close>Cancel</button>
+        <button type="button" class="btn text danger state-layer" id="confirmWipe">Delete</button>
+      </div>
+    </dialog>
+
+    <dialog id="importDialog" aria-labelledby="import-title" aria-describedby="import-text">
+      <div class="dialog-head"><h2 id="import-title">Replace all tasks?</h2></div>
+      <div class="dialog-body">
+        <p id="import-text" style="margin: 0">
+          The tasks and tracked time in this browser will be replaced by the ones in the file. Settings, the timer and
+          the round stay. This cannot be undone.
+        </p>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" class="btn text state-layer" data-close>Cancel</button>
+        <button type="button" class="btn text state-layer" id="confirmImport">Replace</button>
+      </div>
+    </dialog>
+
+    <!-- Not a live region: its messages reach screen readers through the announcer, so they are read out once -->
+    <div class="snackbar" id="snackbar" role="status" aria-live="off">
+      <p id="snackText"></p>
+    </div>
+    <div class="visually-hidden" id="announcer" aria-live="assertive"></div>
+
+    <script>
+      'use strict'
+
+      const KEY = 'pomotrack.v1'
+      const MIN = 60_000
+      const MAX_DURATION = 12 * 60 * MIN
+      const LATE_AFTER = MIN
+      const MODES = {
+        focus: { label: 'Focus', durationMs: 25 * MIN, done: 'Focus session done', next: 'Time to focus' },
+        short: { label: 'Short break', durationMs: 5 * MIN, done: 'Break is over', next: 'Time for a short break' },
+        long: { label: 'Long break', durationMs: 10 * MIN, done: 'Long break is over', next: 'Time for a long break' },
+      }
+      // A round has this many focus sessions, and the last one is followed by a long break
+      const LONG_EVERY = 4
+      const DEFAULT_SETTINGS = { notify: false, sound: true }
+
+      // The main button skips a running interval, except right after a click started it, so a double click only starts
+      const SKIP_DELAY = 1000
+      // An interval waits for Start, then runs until its end or until it is skipped
+      const freshTimer = (mode) => ({ mode, durationMs: MODES[mode].durationMs, endAt: null, segStart: null })
+
+      const isObject = (v) => !!v && typeof v === 'object'
+      const isTime = (v) => Number.isFinite(v)
+      const isDuration = (ms) => Number.isInteger(ms) && ms >= 1000 && ms <= MAX_DURATION
+      const count = (v) => (Number.isFinite(v) && v >= 0 ? v : 0)
+      // Task ids end up in HTML attributes and selectors, so they are limited to the characters the app itself uses
+      const isId = (v) => typeof v === 'string' && /^[\w-]{1,64}$/.test(v)
+      const dayKey = (d = new Date()) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      const parseDayKey = (key) => {
+        const [y, m, d] = key.split('-').map(Number)
+        return new Date(y, m - 1, d)
+      }
+      // A day that exists, written the way dayKey writes it
+      const isDayKey = (key) => /^\d{4}-\d{2}-\d{2}$/.test(key) && dayKey(parseDayKey(key)) === key
+
+      // Stored data is checked field by field. Unknown fields are dropped, invalid ones fall back to their defaults.
+      function normalizeSettings(raw) {
+        const s = { ...DEFAULT_SETTINGS }
+        for (const key of ['notify', 'sound']) if (typeof raw[key] === 'boolean') s[key] = raw[key]
+        return s
+      }
+      function normalizeTask(t) {
+        if (!isObject(t) || !isId(t.id) || typeof t.title !== 'string') return null
+        const done = t.done === true && isTime(t.doneAt)
+        return {
+          id: t.id,
+          title: t.title,
+          est: count(t.est),
+          notes: typeof t.notes === 'string' ? t.notes : '',
+          pomos: count(t.pomos),
+          spentMs: count(t.spentMs),
+          done,
+          createdAt: isTime(t.createdAt) ? t.createdAt : Date.now(),
+          doneAt: done ? t.doneAt : null,
+        }
+      }
+      function normalizeStats(raw) {
+        const stats = {}
+        for (const [key, st] of Object.entries(raw)) {
+          if (isDayKey(key) && isObject(st)) stats[key] = { focusMs: count(st.focusMs), pomos: count(st.pomos) }
+        }
+        return stats
+      }
+      // Focus time not yet credited starts at segStart. It only exists while a focus session runs,
+      // and lies between the start and the end of that session. Without a valid segStart it is the start.
+      function normalizeTimer(raw) {
+        const t = isObject(raw) ? raw : {}
+        const mode = Object.hasOwn(MODES, t.mode) ? t.mode : 'focus'
+        const durationMs = isDuration(t.durationMs) ? t.durationMs : MODES[mode].durationMs
+        // A clock that was set back while the app was closed never leaves more time than the interval has
+        const endAt = isTime(t.endAt) ? Math.min(t.endAt, Date.now() + durationMs) : null
+        let segStart = null
+        if (mode === 'focus' && endAt !== null) {
+          const startAt = endAt - durationMs
+          segStart = isTime(t.segStart) && t.segStart >= startAt && t.segStart <= endAt ? t.segStart : startAt
+        }
+        return { mode, durationMs, endAt, segStart }
+      }
+      function normalizeTasks(raw) {
+        const ids = new Set()
+        return (Array.isArray(raw) ? raw : []).map(normalizeTask).filter((t) => t && !ids.has(t.id) && ids.add(t.id))
+      }
+      // While there are open tasks, one of them is current
+      function normalizeActiveId(tasks, id) {
+        const open = tasks.filter((t) => !t.done)
+        return open.some((t) => t.id === id) ? id : (open[0]?.id ?? null)
+      }
+      function normalize(raw) {
+        const s = isObject(raw) ? raw : {}
+        const tasks = normalizeTasks(s.tasks)
+        return {
+          settings: normalizeSettings(isObject(s.settings) ? s.settings : {}),
+          tasks,
+          activeId: normalizeActiveId(tasks, s.activeId),
+          focusCount: Number.isInteger(s.focusCount) && s.focusCount >= 0 ? s.focusCount : 0,
+          stats: normalizeStats(isObject(s.stats) ? s.stats : {}),
+          timer: normalizeTimer(s.timer),
+        }
+      }
+
+      // The stored JSON as this tab last read or wrote it. When the stored value differs, another tab has changed it.
+      // A failed save leaves it unchanged, so this tab does not mistake its own older state for another tab's change.
+      let storedJson = null
+      function readStored() {
+        try {
+          return localStorage.getItem(KEY)
+        } catch {
+          return null
+        }
+      }
+      function load(raw = readStored()) {
+        storedJson = raw
+        try {
+          return normalize(JSON.parse(storedJson))
+        } catch {
+          return normalize(null)
+        }
+      }
+      function save() {
+        const json = JSON.stringify(state)
+        try {
+          localStorage.setItem(KEY, json)
+          storedJson = json
+        } catch {}
+      }
+
+      let state = load()
+
+      const $ = (sel, root = document) => root.querySelector(sel)
+      const esc = (str) =>
+        String(str).replace(
+          /[&<>"']/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+        )
+      const icon = (name) => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`
+      const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
+      const EMPTY_STATS = { focusMs: 0, pomos: 0 }
+      const statsFor = (key) => state.stats[key] || EMPTY_STATS
+      const dayStats = (time) => (state.stats[dayKey(new Date(time))] ??= { ...EMPTY_STATS })
+      const pluralWord = (n, word) => `${word}${n === 1 ? '' : 's'}`
+      const plural = (n, word) => `${n} ${pluralWord(n, word)}`
+      const pomodoroLabels = (t) =>
+        t.est > 0
+          ? { shown: `${t.pomos}/${t.est}`, spoken: `${t.pomos} of ${t.est} pomodoros` }
+          : { shown: `${t.pomos}`, spoken: plural(t.pomos, 'pomodoro') }
+
+      function fmtClock(ms) {
+        const total = Math.ceil(ms / 1000)
+        const h = Math.floor(total / 3600),
+          m = Math.floor((total % 3600) / 60),
+          s = total % 60
+        const mm = String(m).padStart(2, '0'),
+          ss = String(s).padStart(2, '0')
+        return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`
+      }
+      // Tracked time is shown rounded to whole minutes
+      function fmtDuration(ms) {
+        const mins = Math.round(ms / MIN)
+        if (mins < 1) return ms > 0 ? '<1 min' : '0 min'
+        const h = Math.floor(mins / 60),
+          m = mins % 60
+        return h ? `${h} h${m ? ` ${m} min` : ''}` : `${m} min`
+      }
+      function fmtSpoken(ms) {
+        const total = Math.ceil(ms / 1000)
+        const m = Math.floor(total / 60),
+          s = total % 60
+        return `${plural(m, 'minute')}${s ? ` ${plural(s, 'second')}` : ''}`
+      }
+      // Parses minutes, mm:ss or h:mm:ss into milliseconds, from 1 second to 12 hours. Only a colon separates.
+      // After a colon, two digits are required, so 15:5 is rejected instead of being read as 15:05.
+      // Spaces are only allowed around the time, so 1 5 is rejected instead of being read as 15.
+      function parseTime(input) {
+        const str = input.trim()
+        let sec
+        if (/^\d{1,3}$/.test(str)) sec = +str * 60
+        else if (/^\d{1,3}:\d\d$/.test(str)) {
+          const [m, s] = str.split(':').map(Number)
+          if (s > 59) return null
+          sec = m * 60 + s
+        } else if (/^\d{1,2}:\d\d:\d\d$/.test(str)) {
+          const [h, m, s] = str.split(':').map(Number)
+          if (m > 59 || s > 59) return null
+          sec = h * 3600 + m * 60 + s
+        } else return null
+        return sec >= 1 && sec * 1000 <= MAX_DURATION ? sec * 1000 : null
+      }
+
+      // The arrow keys in the time field move to the next or previous whole minute, with Shift to a multiple of 5 minutes.
+      // They stop at 1 minute and 12 hours, and never raise a time below 1 minute.
+      function stepTimeInput(e) {
+        e.preventDefault()
+        const ms = parseTime(e.target.value) ?? state.timer.durationMs
+        const step = (e.shiftKey ? 5 : 1) * MIN
+        const next = e.key === 'ArrowUp' ? (Math.floor(ms / step) + 1) * step : (Math.ceil(ms / step) - 1) * step
+        e.target.value = fmtClock(Math.max(Math.min(ms, MIN), Math.min(MAX_DURATION, next)))
+        e.target.removeAttribute('aria-invalid')
+        fitTime(e.target, e.target.value)
+      }
+
+      // A modal dialog hides the rest of the page, also from screen readers, so messages go into the open dialog
+      function showIn(el) {
+        const host = document.querySelector('dialog[open]') ?? document.body
+        if (el.parentElement !== host) host.append(el)
+      }
+
+      let announceTimer
+      function announce(msg) {
+        const el = $('#announcer')
+        showIn(el)
+        el.textContent = ''
+        clearTimeout(announceTimer)
+        announceTimer = setTimeout(() => {
+          el.textContent = msg
+        }, 50)
+      }
+
+      // A message that comes while the page is hidden waits until the user is back
+      let snackTimer, pendingSnack
+      function snackbar(msg) {
+        if (document.visibilityState === 'hidden') {
+          pendingSnack = msg
+          return
+        }
+        const bar = $('#snackbar')
+        showIn(bar)
+        $('#snackText').textContent = msg
+        bar.classList.add('show')
+        clearTimeout(snackTimer)
+        snackTimer = setTimeout(() => bar.classList.remove('show'), 4000)
+        announce(msg)
+      }
+
+      const isRunning = () => state.timer.endAt !== null
+      const isDue = () => isRunning() && Date.now() >= state.timer.endAt
+      // A clock that was set back never shows more time than the interval has
+      const remaining = () =>
+        isRunning()
+          ? Math.min(state.timer.durationMs, Math.max(0, state.timer.endAt - Date.now()))
+          : state.timer.durationMs
+      const findTask = (id) => state.tasks.find((t) => t.id === id)
+      const activeTask = () => state.tasks.find((t) => t.id === state.activeId && !t.done) || null
+
+      // Focus time goes to the current task, if there is one, and to the day it was spent on, split at midnight
+      function creditFocusTime(until = Date.now()) {
+        const t = state.timer
+        if (t.mode !== 'focus' || t.segStart == null) return
+        const from = t.segStart
+        until = Math.min(until, t.endAt)
+        // A clock that was set back would otherwise credit the same time twice
+        if (until <= from) return
+        t.segStart = until
+        const task = activeTask()
+        if (task) task.spentMs += until - from
+        for (let start = from; start < until;) {
+          const end = Math.min(until, new Date(start).setHours(24, 0, 0, 0))
+          dayStats(start).focusMs += end - start
+          start = end
+        }
+      }
+
+      function start() {
+        if (isRunning()) return
+        const t = state.timer
+        const now = Date.now()
+        t.endAt = now + t.durationMs
+        if (t.mode === 'focus') t.segStart = now
+        save()
+        render()
+        announce(`${MODES[t.mode].label} started, ${fmtSpoken(t.durationMs)}`)
+      }
+
+      // A completed or skipped focus session counts toward the round, the long break ends it.
+      // The next interval waits for Start.
+      function advance() {
+        const mode = state.timer.mode
+        if (mode === 'focus') state.focusCount++
+        if (mode === 'long') state.focusCount = 0
+        state.timer = freshTimer(mode !== 'focus' ? 'focus' : state.focusCount >= LONG_EVERY ? 'long' : 'short')
+      }
+
+      function complete(late = false) {
+        const t = state.timer
+        creditFocusTime(t.endAt)
+        const finished = t.mode
+        if (finished === 'focus') {
+          // The pomodoro goes to the task that is current when the session ends, and to the day it ends on
+          const task = activeTask()
+          if (task) task.pomos++
+          dayStats(t.endAt).pomos++
+        }
+        advance()
+        save()
+        render()
+        const nextMsg = MODES[state.timer.mode].next
+        if (late) {
+          snackbar(`${MODES[finished].done} while you were away. ${nextMsg}.`)
+          return
+        }
+        chime()
+        const task = activeTask()
+        notify(MODES[finished].done, nextMsg + (task && state.timer.mode === 'focus' ? `: ${task.title}` : '.'))
+        snackbar(`${MODES[finished].done}. ${nextMsg}.`)
+      }
+
+      // An action that arrives after the interval ended, before the next tick noticed, first completes the interval.
+      // So a skip only completes it, and its pomodoro goes to the task that was current at its end.
+      function catchUp() {
+        if (isDue()) endDue(false)
+      }
+
+      function skip() {
+        if (isDue()) {
+          catchUp()
+          return
+        }
+        const wasRunning = isRunning()
+        creditFocusTime()
+        const from = state.timer.mode
+        advance()
+        save()
+        render()
+        const msg = `Skipped ${MODES[from].label.toLowerCase()}. ${MODES[state.timer.mode].next}.`
+        if (wasRunning) snackbar(`${msg} Press Start when you are.`)
+        else announce(msg)
+      }
+
+      // The time can only be set before Start. A running interval keeps the time it started with.
+      function setIntervalTime(ms) {
+        const t = state.timer
+        t.durationMs = ms
+        save()
+        render()
+        announce(`${MODES[t.mode].label} set to ${fmtSpoken(ms)}`)
+      }
+
+      // Takes over the state another tab stored. When that tab ended the interval this tab showed, the end shows here
+      // too, without sound or notification.
+      function adopt(raw = readStored()) {
+        const before = state.timer
+        const ended = isDue()
+        state = load(raw)
+        // The other tab already moved the interval with the clock
+        lastOffset = clockOffset()
+        render()
+        if (ended && state.timer.mode !== before.mode) {
+          snackbar(`${MODES[before.mode].done}. ${MODES[state.timer.mode].next}.`)
+        }
+      }
+
+      // With the app open in several tabs, the focused tab ends the interval and plays the alert. The others wait this
+      // long, then take the result over, or end the interval themselves when no tab of the app has focus.
+      const CLAIM_DELAY = 1000
+      function endDue(wait = !document.hasFocus()) {
+        // Another tab may have completed the interval or deleted all data already, and its storage event may not
+        // have arrived yet
+        const raw = readStored()
+        if (raw !== storedJson) adopt(raw)
+        if (!isDue() || (wait && Date.now() - state.timer.endAt < CLAIM_DELAY)) return
+        complete(Date.now() - state.timer.endAt > LATE_AFTER)
+      }
+
+      // Setting the device clock back does not change the time left, the running interval moves back with the clock.
+      // The page's own clock never goes back, so the difference between the two shows how far the device clock went.
+      const clockOffset = () => Date.now() - performance.now()
+      let lastOffset = clockOffset()
+      function followClock() {
+        const offset = clockOffset()
+        const back = lastOffset - offset
+        lastOffset = offset
+        if (back < 1000 || !isRunning()) return
+        const t = state.timer
+        t.endAt -= back
+        if (t.segStart !== null) t.segStart -= back
+        save()
+      }
+
+      let renderedDay = dayKey()
+      function tick() {
+        followClock()
+        if (dayKey() !== renderedDay) {
+          renderedDay = dayKey()
+          renderTasks()
+        }
+        if (isDue()) {
+          renderTime()
+          endDue()
+          return
+        }
+        // Focus time is credited as it passes, so the totals on screen and in the export are current.
+        // It is saved with the next change, until then the stored segStart still covers it.
+        creditFocusTime()
+        renderTime()
+        renderLiveTotals()
+      }
+
+      // Browsers only allow audio after a user gesture on the page. Every click or key press unlocks it, also after a reload.
+      let audioCtx
+      function unlockAudio() {
+        // Creating it outside a gesture would only log a warning. Without sound turned on, no audio is needed at all.
+        if (!state.settings.sound || navigator.userActivation?.isActive === false) return
+        try {
+          audioCtx ??= new (window.AudioContext || window.webkitAudioContext)()
+          if (audioCtx.state === 'suspended') audioCtx.resume()
+        } catch {}
+      }
+      addEventListener('pointerdown', unlockAudio, true)
+      addEventListener('keydown', unlockAudio, true)
+      // On touch screens, only the end of a tap allows audio
+      addEventListener('click', unlockAudio, true)
+      function chime() {
+        if (!state.settings.sound || audioCtx?.state !== 'running') return
+        const t0 = audioCtx.currentTime
+        ;[
+          [660, 0],
+          [880, 0.18],
+          [990, 0.36],
+        ].forEach(([freq, dt]) => {
+          const osc = audioCtx.createOscillator(),
+            gain = audioCtx.createGain()
+          osc.type = 'sine'
+          osc.frequency.value = freq
+          gain.gain.setValueAtTime(0.0001, t0 + dt)
+          gain.gain.exponentialRampToValueAtTime(0.25, t0 + dt + 0.02)
+          gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + 0.6)
+          osc.connect(gain).connect(audioCtx.destination)
+          osc.start(t0 + dt)
+          osc.stop(t0 + dt + 0.65)
+        })
+      }
+
+      const NOTIFY_ICON = document.querySelector('link[rel="icon"]').href
+      async function notify(title, body) {
+        if (!state.settings.notify || !('Notification' in window) || Notification.permission !== 'granted') return
+        if (document.visibilityState === 'visible' && document.hasFocus()) return
+        const opts = { body, icon: NOTIFY_ICON, badge: NOTIFY_ICON, tag: 'pomotrack', renotify: true }
+        try {
+          const reg = await navigator.serviceWorker?.getRegistration()
+          if (reg) {
+            await reg.showNotification(title, opts)
+            return
+          }
+        } catch {}
+        try {
+          const n = new Notification(title, opts)
+          n.onclick = () => {
+            window.focus()
+            n.close()
+          }
+        } catch {
+          /* Android Chrome only shows notifications through a service worker */
+        }
+      }
+
+      async function enableNotifications() {
+        if (!('Notification' in window)) {
+          snackbar('This browser does not support notifications.')
+          return false
+        }
+        let perm = Notification.permission
+        if (perm === 'default') perm = await Notification.requestPermission()
+        if (perm !== 'granted') {
+          snackbar('Notifications are not allowed. Check the notification permission in your browser site settings.')
+          return false
+        }
+        return true
+      }
+
+      // The list holds the open tasks. Finished tasks are in the history.
+      const listTasks = () => state.tasks.filter((t) => !t.done)
+
+      function nextOpenTask(afterId) {
+        const open = state.tasks.filter((t) => !t.done && t.id !== afterId)
+        const idx = state.tasks.findIndex((t) => t.id === afterId)
+        return open.find((t) => state.tasks.indexOf(t) > idx) || open[0] || null
+      }
+
+      function setActive(id) {
+        catchUp()
+        if (state.activeId === id) return
+        creditFocusTime()
+        state.activeId = id
+        save()
+        render()
+      }
+
+      function addTask({ title, est, notes }) {
+        catchUp()
+        const task = {
+          id: uid(),
+          title,
+          est,
+          notes,
+          pomos: 0,
+          spentMs: 0,
+          done: false,
+          createdAt: Date.now(),
+          doneAt: null,
+        }
+        state.tasks.push(task)
+        // A new task becomes current when there was no open task
+        if (!activeTask()) {
+          creditFocusTime()
+          state.activeId = task.id
+        }
+        save()
+        render()
+        announce(`Added task ${title}`)
+      }
+
+      function updateTask(id, fields) {
+        const task = findTask(id)
+        if (!task) return
+        Object.assign(task, fields)
+        save()
+        render()
+      }
+
+      // When the current task leaves the list, the next open task below it takes over, or else the first one.
+      // Returns the part of the message that names the new current task.
+      function handOver(id) {
+        if (state.activeId !== id) return ''
+        creditFocusTime()
+        const next = nextOpenTask(id)
+        state.activeId = next?.id ?? null
+        return next ? `. Now working on "${next.title}"` : ''
+      }
+
+      // Finishing moves a task to the history
+      function finishTask(id) {
+        catchUp()
+        const task = findTask(id)
+        if (!task || task.done) return
+        const handedOver = handOver(id)
+        task.done = true
+        task.doneAt = Date.now()
+        editing.delete(id)
+        save()
+        render()
+        snackbar(`Finished "${task.title}"${handedOver}`)
+      }
+
+      function finishActive() {
+        const task = activeTask()
+        if (task) finishTask(task.id)
+        else snackbar('No current task to finish.')
+      }
+
+      function deleteTask(id) {
+        catchUp()
+        const task = findTask(id)
+        if (!task) return
+        const handedOver = handOver(id)
+        state.tasks = state.tasks.filter((t) => t !== task)
+        editing.delete(id)
+        save()
+        render()
+        snackbar(`Deleted "${task.title}"${handedOver}`)
+      }
+
+      // J and K select the next or previous open task, wrapping around
+      function moveActive(dir) {
+        const open = listTasks()
+        if (!open.length) return
+        const i = open.findIndex((t) => t.id === state.activeId)
+        const next = open[(i + dir + open.length) % open.length]
+        setActive(next.id)
+        announce(`Current task: ${next.title}`)
+      }
+
+      const els = {
+        body: document.body,
+        timeBtn: $('#timeBtn'),
+        timeInput: $('#timeInput'),
+        modeLabel: $('#modeLabel'),
+        ring: $('#ringBar'),
+        startBtn: $('#startBtn'),
+        skipBtn: $('#skipBtn'),
+        editHint: $('#editHint'),
+        dots: $('#dots'),
+        roundText: $('#roundText'),
+        currentText: $('#currentTaskText'),
+        finishBtn: $('#finishBtn'),
+        list: $('#taskList'),
+        empty: $('#emptyState'),
+        summary: $('#summary'),
+        addBtn: $('#addBtn'),
+        addSlot: $('#addFormSlot'),
+        themeMeta: $('meta[name="theme-color"]'),
+      }
+      // The tasks being edited, as they were when their form opened. Several can be edited at once, so opening one
+      // form never discards what was typed in another. A form is built from its copy, so a change from another tab
+      // leaves its markup the same and the open form, with what was typed, stays.
+      const editing = new Map()
+
+      // A time with hours is longer, so it gets a smaller font to fit inside the ring
+      const fitTime = (el, text) => el.classList.toggle('hours', text.trim().length > 5)
+
+      function renderTime(force = false) {
+        const ms = remaining()
+        const clock = fmtClock(ms)
+        if (!force && els.timeBtn.textContent === clock) return
+        const t = state.timer
+        const progress = 1 - ms / t.durationMs
+        els.ring.setAttribute('stroke-dashoffset', String(100 - progress * 100))
+        els.ring.style.opacity = progress > 0 ? 1 : 0 // round caps would draw a dot at 0 %
+        els.timeBtn.textContent = clock
+        fitTime(els.timeBtn, clock)
+        els.timeBtn.setAttribute('aria-label', `${clock} remaining${isRunning() ? '' : '. Edit time'}`)
+        document.title = isRunning() ? `${clock} · ${MODES[t.mode].label}` : 'Pomotrack'
+      }
+
+      // Crediting focus time while a session runs changes today's totals and the time of the current task, nothing else.
+      // They are updated in place when a shown minute changes, so no row is replaced under a click
+      // and the history is not rebuilt.
+      let liveTotals = ''
+      const liveTotalsKey = () =>
+        `${fmtDuration(statsFor(dayKey()).focusMs)} ${fmtDuration(activeTask()?.spentMs ?? 0)}`
+      function renderLiveTotals() {
+        if (liveTotalsKey() === liveTotals) return
+        liveTotals = liveTotalsKey()
+        const task = activeTask()
+        const spent = task && els.list.querySelector(`[data-spent="${task.id}"]`)
+        if (spent) spent.textContent = fmtDuration(task.spentMs)
+        renderSummary()
+        const todayMeta = hist.root.open && hist.body.querySelector(`#hd-${dayKey()} .day-meta`)
+        if (todayMeta) todayMeta.textContent = dayMetaText(statsFor(dayKey()))
+        // Today is not in the history yet, or the history is closed and only its count may change
+        else renderHistory()
+      }
+
+      // The browser UI, like the address bar or the title bar of the installed app, takes the color of the page.
+      // It changes with the mode and with the light or dark theme of the device.
+      function renderThemeColor() {
+        const surface = getComputedStyle(els.body).getPropertyValue('--surface').trim()
+        if (els.themeMeta.content !== surface) els.themeMeta.content = surface
+      }
+      matchMedia('(prefers-color-scheme: dark)').addEventListener('change', renderThemeColor)
+
+      function renderTimer() {
+        const t = state.timer,
+          running = isRunning()
+        // The interval started or changed while its time was being edited, so the typed time no longer applies
+        if (editingMode && (editingMode !== t.mode || running)) cancelTimeEdit()
+        els.body.dataset.mode = t.mode
+        renderThemeColor()
+        els.modeLabel.textContent = MODES[t.mode].label
+        // While the interval runs, the main button skips it and takes over from the Skip button next to it.
+        // The time can only be edited before Start. Focus on a control that goes away moves to the main button.
+        if (running && [els.skipBtn, els.timeBtn].includes(document.activeElement)) els.startBtn.focus()
+        // Its content is only replaced when it changes. Content replaced under the pointer loses the click, like the
+        // click on Start that also applies a typed time.
+        if (els.startBtn.classList.contains('running') !== running) {
+          els.startBtn.classList.toggle('running', running)
+          els.startBtn.title = running ? 'Skip to next step (S)' : 'Start (Space)'
+          els.startBtn.innerHTML = running ? `${icon('skip')}<span>Skip</span>` : `${icon('play')}<span>Start</span>`
+        }
+        els.skipBtn.hidden = running
+        els.timeBtn.disabled = running
+        els.editHint.hidden = running
+        if (running) els.timeBtn.removeAttribute('aria-describedby')
+        else els.timeBtn.setAttribute('aria-describedby', 'editHint')
+
+        const filled = Math.min(state.focusCount, LONG_EVERY)
+        els.dots.innerHTML = Array.from(
+          { length: LONG_EVERY },
+          (_, i) => `<span class="${i < filled ? 'done' : i === filled && t.mode === 'focus' ? 'now' : ''}"></span>`,
+        ).join('')
+        els.roundText.textContent =
+          t.mode === 'focus'
+            ? `Session ${Math.min(state.focusCount + 1, LONG_EVERY)} of ${LONG_EVERY}`
+            : `${filled} of ${LONG_EVERY} sessions done`
+
+        const task = activeTask()
+        els.currentText.innerHTML = task
+          ? `Working on <strong>${esc(task.title)}</strong>`
+          : 'Add a task to track time on it.'
+        // Finishing the last open task hides the Finish button, so its focus moves on to adding a task
+        if (!task && document.activeElement === els.finishBtn) focusAddTask()
+        els.finishBtn.hidden = !task
+        renderTime(true)
+      }
+
+      function taskFormHTML(task) {
+        const id = task ? task.id : 'new'
+        return `
+    <form class="task-form" data-form="${id}" aria-label="${task ? 'Edit task' : 'New task'}" novalidate>
+      <div class="field">
+        <label for="title-${id}">Task</label>
+        <input type="text" id="title-${id}" name="title" maxlength="200" required autocomplete="off"
+               placeholder="What are you working on?" value="${esc(task?.title ?? '')}">
+      </div>
+      <div class="field">
+        <span class="field-label" id="est-label-${id}">Estimated pomodoros</span>
+        <div class="stepper" role="group" aria-labelledby="est-label-${id}">
+          <button type="button" class="icon-btn tonal state-layer" data-step="-1" aria-label="One less">${icon('remove')}</button>
+          <input type="number" name="est" min="0" max="99" value="${task ? task.est : 1}" aria-labelledby="est-label-${id}" aria-describedby="est-help-${id}">
+          <button type="button" class="icon-btn tonal state-layer" data-step="1" aria-label="One more">${icon('add')}</button>
+        </div>
+        <p class="helper" id="est-help-${id}">0 means no estimate.</p>
+      </div>
+      <div class="field">
+        <label for="notes-${id}">Notes</label>
+        <textarea id="notes-${id}" name="notes" rows="2" maxlength="2000" placeholder="Optional">${esc(task?.notes ?? '')}</textarea>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn text state-layer" data-cancel>Cancel</button>
+        <button type="submit" class="btn filled state-layer">${task ? 'Save' : 'Add task'}</button>
+      </div>
+    </form>`
+      }
+
+      const rowActionHTML = (attr, verb, iconName, title) =>
+        `<button type="button" class="icon-btn state-layer" ${attr} aria-label="${verb} ${esc(title)}" title="${verb}">${icon(iconName)}</button>`
+
+      function taskRowHTML(task) {
+        const active = task.id === state.activeId
+        const pomodoros = pomodoroLabels(task)
+        const draft = editing.get(task.id)
+        if (draft) return `<li class="task" data-id="${task.id}">${taskFormHTML(draft)}</li>`
+        return `
+    <li class="task${active ? ' active' : ''}" data-id="${task.id}">
+      <button type="button" class="icon-btn state-layer drag-handle" data-drag aria-label="Move ${esc(task.title)}" aria-describedby="dragHelp" title="Drag to reorder">${icon('drag')}</button>
+      <button type="button" class="checkbox" data-finish aria-label="Finish ${esc(task.title)}" title="Finish"></button>
+      <label class="task-main">
+        <input type="radio" class="task-radio visually-hidden" name="active-task" value="${task.id}"
+               ${active ? 'checked' : ''} aria-labelledby="t-${task.id}" aria-describedby="m-${task.id}">
+        <span class="task-title" id="t-${task.id}">${esc(task.title)}</span>
+        <span class="task-meta" id="m-${task.id}">
+          <span title="Pomodoros done / estimated">${icon('timer')}<span class="visually-hidden">${pomodoros.spoken}</span><span aria-hidden="true">${pomodoros.shown}</span></span>
+          <span title="Focus time tracked">${icon('schedule')}<span class="visually-hidden">Time tracked: </span><span data-spent="${task.id}">${fmtDuration(task.spentMs)}</span></span>
+        </span>
+        ${task.notes ? `<p class="task-notes">${esc(task.notes)}</p>` : ''}
+      </label>
+      <span class="task-actions">
+        ${rowActionHTML('data-edit', 'Edit', 'edit', task.title)}
+        ${rowActionHTML('data-delete', 'Delete', 'delete', task.title)}
+      </span>
+    </li>`
+      }
+
+      const ROW_CONTROLS = ['[data-drag]', '[data-finish]', '.task-radio', '[data-edit]', '[data-delete]']
+      const rowMarkup = new WeakMap()
+      const template = document.createElement('template')
+
+      function renderTasks() {
+        // Rows are not re-rendered during a drag, because that would replace the row being dragged. endDrag catches up.
+        if (!drag) renderRows()
+        renderEmpty()
+        renderSummary()
+        renderHistory()
+        liveTotals = liveTotalsKey()
+      }
+
+      function renderRows() {
+        const visible = listTasks()
+        const visibleIds = new Set(visible.map((t) => t.id))
+        // Edit forms of tasks that another tab finished or deleted are gone
+        for (const id of editing.keys()) if (!visibleIds.has(id)) editing.delete(id)
+        const focused = els.list.contains(document.activeElement) ? document.activeElement : null
+        const selection = focused && textSelection(focused)
+        const focusKind = focused && ROW_CONTROLS.find((sel) => focused.matches(sel))
+        const focusRow = focusKind && focused.closest('[data-id]')
+        const focusIndex = focusKind && [...els.list.children].indexOf(focusRow)
+        // Rows that left go first, so the rows that stay are not moved, which would take the focus from them
+        const old = new Map()
+        for (const li of [...els.list.children]) {
+          if (visibleIds.has(li.dataset.id)) old.set(li.dataset.id, li)
+          else li.remove()
+        }
+        let prev = null
+        for (const task of visible) {
+          const html = taskRowHTML(task).trim()
+          let li = old.get(task.id)
+          old.delete(task.id)
+          if (rowMarkup.get(li) !== html) {
+            template.innerHTML = html
+            const fresh = template.content.firstElementChild
+            rowMarkup.set(fresh, html)
+            li?.remove()
+            li = fresh
+          }
+          const next = prev ? prev.nextElementSibling : els.list.firstElementChild
+          if (li !== next) els.list.insertBefore(li, next)
+          prev = li
+        }
+        if (!focused || document.activeElement === focused) return
+        if (focused.isConnected) {
+          focused.focus({ preventScroll: true })
+          if (selection) focused.setSelectionRange(...selection)
+        } else if (focusKind && !focusInRow(focusRow.dataset.id, focusKind)) {
+          // The row left the list, so focus moves to the same control in the row that took its place
+          focusNearest([...els.list.children], focusIndex, focusKind)
+        }
+      }
+
+      // The selection in a text field, which moving the field would lose
+      function textSelection(el) {
+        try {
+          return typeof el.selectionStart === 'number'
+            ? [el.selectionStart, el.selectionEnd, el.selectionDirection]
+            : null
+        } catch {
+          return null
+        }
+      }
+
+      function renderSummary() {
+        const today = statsFor(dayKey())
+        els.summary.innerHTML = `<span>Today <strong>${fmtDuration(today.focusMs)}</strong> focused · <strong>${today.pomos}</strong> ${pluralWord(today.pomos, 'pomodoro')}</span>`
+      }
+
+      function renderEmpty() {
+        els.empty.textContent = state.tasks.length
+          ? 'No open tasks. Add one to keep tracking.'
+          : 'No tasks yet. Add one to see where your focus time goes.'
+        els.empty.hidden = els.list.childElementCount > 0 || addFormOpen()
+      }
+
+      function focusNearest(rows, index, selector) {
+        const row = rows[Math.min(index, rows.length - 1)]
+        const el = row?.querySelector(selector)
+        if (el) el.focus({ preventScroll: true })
+        else focusAddTask()
+      }
+      const focusAddTask = () => (els.addBtn.hidden ? $('#tasks-heading') : els.addBtn).focus({ preventScroll: true })
+      function focusInRow(id, selector) {
+        const el = els.list.querySelector(`[data-id="${id}"] ${selector}`)
+        el?.focus({ preventScroll: true })
+        return !!el
+      }
+
+      const hist = { root: $('#history'), body: $('#historyBody'), count: $('#historyCount') }
+
+      // A day is in the history when tasks were finished on it or focus time was spent on it, today included
+      function historyDays() {
+        const days = new Map()
+        const day = (key) => days.get(key) || days.set(key, []).get(key)
+        for (const t of state.tasks) if (t.done) day(dayKey(new Date(t.doneAt))).push(t)
+        for (const [key, st] of Object.entries(state.stats)) if (st.focusMs > 0 || st.pomos > 0) day(key)
+        for (const tasks of days.values()) tasks.sort((a, b) => a.doneAt - b.doneAt)
+        return [...days.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      }
+
+      function fmtDay(key) {
+        const date = parseDayKey(key)
+        const yesterday = new Date()
+        yesterday.setDate(yesterday.getDate() - 1)
+        if (key === dayKey()) return 'Today'
+        if (key === dayKey(yesterday)) return 'Yesterday'
+        const opts = { weekday: 'short', day: 'numeric', month: 'short' }
+        if (date.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric'
+        // In the language of the app, not the one of the browser
+        return date.toLocaleDateString(document.documentElement.lang, opts)
+      }
+
+      const dayMetaText = (st) => `${fmtDuration(st.focusMs)} focused · ${plural(st.pomos, 'pomodoro')}`
+
+      function historyItemHTML(t) {
+        const pomodoros = pomodoroLabels(t)
+        return `
+    <li class="history-item">
+      <div class="h-main">
+        <span class="h-title">${esc(t.title)}</span>
+        ${t.notes ? `<span class="h-notes">${esc(t.notes)}</span>` : ''}
+      </div>
+      <span class="h-meta"><span class="visually-hidden">${pomodoros.spoken}, </span><span aria-hidden="true">${pomodoros.shown} · </span>${fmtDuration(t.spentMs)}</span>
+    </li>`
+      }
+
+      function renderHistory() {
+        const days = historyDays()
+        hist.root.hidden = !days.length
+        const n = days.reduce((sum, [, tasks]) => sum + tasks.length, 0)
+        hist.count.textContent = `· ${plural(n, 'task')}, ${plural(days.length, 'day')}`
+        if (!hist.root.open) {
+          hist.body.innerHTML = ''
+          return
+        }
+        hist.body.innerHTML = days
+          .map(
+            ([key, tasks]) => `
+      <section class="history-day" aria-labelledby="hd-${key}">
+        <h3 id="hd-${key}"><span>${esc(fmtDay(key))}</span><span class="day-meta">${dayMetaText(statsFor(key))}</span></h3>
+        ${tasks.length ? `<ul>${tasks.map(historyItemHTML).join('')}</ul>` : '<p class="history-none">No tasks finished</p>'}
+      </section>`,
+          )
+          .join('')
+      }
+
+      function toggleHistory() {
+        if (hist.root.hidden) {
+          snackbar('No history yet. Finished tasks show up here.')
+          return
+        }
+        hist.root.open = !hist.root.open
+        hist.root.querySelector('summary').focus()
+      }
+
+      hist.root.addEventListener('toggle', renderHistory)
+
+      function render() {
+        renderTimer()
+        renderTasks()
+      }
+
+      const addFormOpen = () => !!els.addSlot.firstElementChild
+
+      function openAddForm() {
+        if (!addFormOpen()) els.addSlot.innerHTML = taskFormHTML(null)
+        els.addBtn.hidden = true
+        renderEmpty()
+        $('#title-new').focus()
+      }
+      function closeAddForm(focusAdd = true) {
+        els.addSlot.innerHTML = ''
+        els.addBtn.hidden = false
+        renderEmpty()
+        if (focusAdd) els.addBtn.focus()
+      }
+      function readForm(form) {
+        const title = form.title.value.trim()
+        if (!title) {
+          form.title.setAttribute('aria-invalid', 'true')
+          form.title.focus()
+          announce('Task name is required')
+          return null
+        }
+        const est = Math.max(0, Math.min(99, parseInt(form.est.value, 10) || 0))
+        return { title, est, notes: form.notes.value.trim() }
+      }
+
+      document.addEventListener('submit', (e) => {
+        const form = e.target.closest('[data-form]')
+        if (!form) return
+        e.preventDefault()
+        const data = readForm(form)
+        if (!data) return
+        if (form.dataset.form === 'new') {
+          addTask(data)
+          form.reset()
+          form.title.focus()
+        } else {
+          closeEditForm(form.dataset.form, data)
+        }
+      })
+
+      document.addEventListener('click', (e) => {
+        const form = e.target.closest('[data-form]')
+        if (form) {
+          const step = e.target.closest('[data-step]')
+          if (step) {
+            form.est.stepUp(Number(step.dataset.step))
+            return
+          }
+          if (e.target.closest('[data-cancel]')) cancelForm(form)
+        }
+      })
+
+      function cancelForm(form) {
+        if (form.dataset.form === 'new') closeAddForm()
+        else closeEditForm(form.dataset.form)
+      }
+
+      function closeEditForm(id, changes) {
+        editing.delete(id)
+        if (changes) updateTask(id, changes)
+        else renderTasks()
+        focusInRow(id, '[data-edit]')
+      }
+
+      document.addEventListener('keydown', (e) => {
+        const form = e.target.closest?.('[data-form]')
+        if (form && e.key === 'Escape') {
+          e.preventDefault()
+          cancelForm(form)
+        }
+        if (form && e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target.tagName === 'TEXTAREA') {
+          e.preventDefault()
+          form.requestSubmit()
+        }
+      })
+      document.addEventListener('input', (e) => e.target.removeAttribute('aria-invalid'))
+
+      els.list.addEventListener('change', (e) => {
+        const li = e.target.closest('[data-id]')
+        if (li && e.target.matches('.task-radio')) setActive(li.dataset.id)
+      })
+      els.list.addEventListener('click', (e) => {
+        const li = e.target.closest('[data-id]')
+        if (!li) return
+        if (e.target.closest('[data-finish]')) finishTask(li.dataset.id)
+        else if (e.target.closest('[data-delete]')) deleteTask(li.dataset.id)
+        else if (e.target.closest('[data-edit]')) {
+          editing.set(li.dataset.id, { ...findTask(li.dataset.id) })
+          renderTasks()
+          $(`#title-${li.dataset.id}`).focus()
+        }
+      })
+
+      // Finished tasks keep their place in the stored order, only the open tasks are rearranged
+      function applyListOrder(ids, movedId) {
+        const byId = new Map(state.tasks.map((t) => [t.id, t]))
+        let i = 0
+        state.tasks = state.tasks.map((t) => (t.done ? t : byId.get(ids[i++])))
+        save()
+        render()
+        announce(`Moved to position ${ids.indexOf(movedId) + 1} of ${ids.length}`)
+      }
+
+      els.list.addEventListener('keydown', (e) => {
+        const handle = e.target.closest('[data-drag]')
+        if (!handle || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return
+        e.preventDefault()
+        const id = handle.closest('[data-id]').dataset.id
+        const ids = listTasks().map((t) => t.id)
+        const from = ids.indexOf(id),
+          to = from + (e.key === 'ArrowUp' ? -1 : 1)
+        if (from < 0 || to < 0 || to >= ids.length) return
+        ;[ids[from], ids[to]] = [ids[to], ids[from]]
+        applyListOrder(ids, id)
+      })
+
+      let drag = null
+      els.list.addEventListener('pointerdown', (e) => {
+        const handle = e.target.closest('[data-drag]')
+        if (!handle || e.button !== 0) return
+        e.preventDefault()
+        const li = handle.closest('[data-id]')
+        handle.setPointerCapture(e.pointerId)
+        drag = {
+          li,
+          id: li.dataset.id,
+          offset: e.clientY - li.getBoundingClientRect().top,
+          from: [...els.list.children].indexOf(li),
+        }
+        li.classList.add('dragging')
+        document.body.classList.add('is-dragging')
+      })
+      // Moving the dragged row drops its pointer capture, so the drag follows the pointer on the whole window.
+      // Otherwise a release outside the list would never end the drag, and the list would stop updating.
+      addEventListener('pointermove', (e) => {
+        if (!drag) return
+        const y = e.clientY
+        const before =
+          [...els.list.children].find(
+            (el) => el !== drag.li && y < el.getBoundingClientRect().top + el.offsetHeight / 2,
+          ) || null
+        if (before !== drag.li.nextElementSibling) els.list.insertBefore(drag.li, before)
+        drag.li.style.transform = ''
+        drag.li.style.transform = `translateY(${y - drag.offset - drag.li.getBoundingClientRect().top}px)`
+        if (y < 48) scrollBy(0, -12)
+        else if (y > innerHeight - 48) scrollBy(0, 12)
+      })
+      function endDrag(commit) {
+        if (!drag) return
+        const { li, id, from } = drag
+        drag = null
+        li.style.transform = ''
+        li.classList.remove('dragging')
+        document.body.classList.remove('is-dragging')
+        const order = [...els.list.children].map((el) => el.dataset.id)
+        const open = listTasks().map((t) => t.id)
+        // Tasks added, finished or deleted during the drag, for example in another tab, make the new order meaningless
+        const sameTasks = order.length === open.length && open.every((taskId) => order.includes(taskId))
+        if (commit && sameTasks && order.indexOf(id) !== from) applyListOrder(order, id)
+        else render()
+        focusInRow(id, '[data-drag]')
+      }
+      addEventListener('pointerup', () => endDrag(true))
+      addEventListener('pointercancel', () => endDrag(false))
+      // A release outside the browser window may never arrive
+      addEventListener('blur', () => endDrag(false))
+
+      // A double click acts as a single click. Otherwise its second click would hit what took the place of the first,
+      // like the Delete button of the next task, or start the break that a skip just brought up.
+      // Only the buttons that step the estimate keep counting.
+      document.addEventListener(
+        'click',
+        (e) => {
+          if (e.detail > 1 && e.target.closest('button:not([data-step])')) {
+            e.preventDefault()
+            e.stopImmediatePropagation()
+          }
+        },
+        true,
+      )
+
+      // Starts a waiting interval and skips a running one. See SKIP_DELAY.
+      let clickStartedAt = -Infinity
+      els.startBtn.addEventListener('click', () => {
+        if (!isRunning()) {
+          clickStartedAt = performance.now()
+          start()
+        } else if (performance.now() - clickStartedAt >= SKIP_DELAY) skip()
+      })
+      els.skipBtn.addEventListener('click', skip)
+      els.finishBtn.addEventListener('click', finishActive)
+      els.addBtn.addEventListener('click', openAddForm)
+
+      // The mode of the interval whose time is being edited, null while not editing
+      let editingMode = null
+      // The time the field showed when editing began. Leaving it unchanged keeps the interval as it is.
+      let editingFrom = ''
+      function beginTimeEdit() {
+        if (editingMode) return
+        if (isRunning()) {
+          snackbar('The time can only be changed before Start.')
+          return
+        }
+        editingMode = state.timer.mode
+        editingFrom = els.timeInput.value = fmtClock(state.timer.durationMs)
+        fitTime(els.timeInput, editingFrom)
+        els.timeInput.removeAttribute('aria-invalid')
+        els.timeBtn.hidden = true
+        els.timeInput.hidden = false
+        els.timeInput.focus()
+        els.timeInput.select()
+      }
+      // Enter applies a changed time, Escape discards it. An invalid time keeps the field open on Enter.
+      function endTimeEdit(commit) {
+        if (!editingMode) return true
+        commit &&= els.timeInput.value.trim() !== editingFrom
+        const ms = commit ? parseTime(els.timeInput.value) : null
+        if (commit && ms == null) {
+          els.timeInput.setAttribute('aria-invalid', 'true')
+          announce('Invalid time. Use minutes like 15 or mm:ss like 15:30.')
+          return false
+        }
+        editingMode = null
+        els.timeInput.hidden = true
+        els.timeBtn.hidden = false
+        if (commit) setIntervalTime(ms)
+        return true
+      }
+      function cancelTimeEdit() {
+        const hadFocus = document.activeElement === els.timeInput
+        endTimeEdit(false)
+        if (hadFocus) els.timeBtn.focus()
+      }
+      els.timeBtn.addEventListener('click', beginTimeEdit)
+      els.timeInput.addEventListener('input', () => fitTime(els.timeInput, els.timeInput.value))
+      els.timeInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          if (endTimeEdit(true)) els.timeBtn.focus()
+        } else if (e.key === 'Escape') {
+          e.preventDefault()
+          cancelTimeEdit()
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') stepTimeInput(e)
+      })
+      // Leaving the field applies a valid changed time, and drops an invalid one without a message
+      els.timeInput.addEventListener('blur', () => endTimeEdit(parseTime(els.timeInput.value) != null))
+
+      // Whether the focused element got its focus through the keyboard, also when the app moved it after a key press.
+      // :focus-visible cannot tell, because a key press makes the focused element match it.
+      let lastInput = 'keyboard',
+        focusedWithKeyboard = false
+      addEventListener('pointerdown', () => (lastInput = 'pointer'), true)
+      // Key combinations, like Alt+Tab to another window and back, do not make the focus show, so they do not count
+      addEventListener(
+        'keydown',
+        (e) => {
+          const combo = e.ctrlKey || e.metaKey || e.altKey || ['Control', 'Meta', 'Alt', 'Shift'].includes(e.key)
+          if (!combo) lastInput = 'keyboard'
+        },
+        true,
+      )
+      addEventListener('focusin', () => (focusedWithKeyboard = lastInput === 'keyboard'), true)
+
+      document.addEventListener('keydown', (e) => {
+        // A held Enter does not repeat the click of a button, which would skip, finish or delete one item after another.
+        // Only the buttons that step the estimate keep counting.
+        if (e.repeat && e.key === 'Enter' && e.target.closest?.('button:not([data-step])')) e.preventDefault()
+        // A held key does not repeat its shortcut. Key combinations belong to the browser, like Ctrl+F to find on the page.
+        if (e.defaultPrevented || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return
+        if (document.querySelector('dialog[open]')) return
+        const el = document.activeElement ?? document.body
+        // Shortcuts pause in text fields, and anywhere in a task form, where F could finish the task being edited
+        if (el.matches('input:not([type=checkbox]):not([type=radio]), textarea') || el.closest('[data-form]')) return
+        if (e.key === ' ') {
+          // Space never skips, also not on the main button while the interval runs
+          if (el === els.startBtn && isRunning()) {
+            e.preventDefault()
+            return
+          }
+          // A control focused with the keyboard handles Space itself. A click leaves the focus on what was clicked,
+          // or moves it to the next row, without showing it, so Space would repeat the click on something unseen.
+          const focusedControlHandlesSpace = el.tabIndex >= 0 && focusedWithKeyboard
+          if (focusedControlHandlesSpace) return
+          e.preventDefault()
+          start()
+          return
+        }
+        const actions = {
+          s: skip,
+          e: beginTimeEdit,
+          n: openAddForm,
+          f: finishActive,
+          h: toggleHistory,
+          j: () => moveActive(1),
+          k: () => moveActive(-1),
+          '?': showShortcuts,
+        }
+        const fn = actions[e.key.length === 1 ? e.key.toLowerCase() : '']
+        if (fn) {
+          e.preventDefault()
+          fn()
+        }
+      })
+
+      document.querySelectorAll('dialog').forEach((d) => {
+        d.addEventListener('click', (e) => {
+          const clickedBackdrop = e.target === d
+          if (clickedBackdrop || e.target.closest('[data-close]')) d.close()
+        })
+        // Messages shown in the dialog go back to the page. See showIn.
+        d.addEventListener('close', () => document.body.append($('#snackbar'), $('#announcer')))
+      })
+      const showShortcuts = () => $('#shortcutsDialog').showModal()
+      $('#shortcutsBtn').addEventListener('click', showShortcuts)
+      const settingsForm = $('#settingsForm')
+      // The switch shows the setting. A hint tells when the browser does not allow notifications at the moment.
+      function renderNotifyHint() {
+        const blocked = state.settings.notify && (!('Notification' in window) || Notification.permission !== 'granted')
+        $('#notifyBlocked').hidden = !blocked
+        settingsForm.elements.notify.setAttribute(
+          'aria-describedby',
+          blocked ? 'notifyHelp notifyBlocked' : 'notifyHelp',
+        )
+      }
+      $('#settingsBtn').addEventListener('click', () => {
+        for (const key of ['notify', 'sound']) settingsForm.elements[key].checked = state.settings[key]
+        renderNotifyHint()
+        $('#settingsDialog').showModal()
+      })
+
+      settingsForm.addEventListener('change', async (e) => {
+        const input = e.target
+        if (input.name === 'notify' && input.checked && !(await enableNotifications())) {
+          input.checked = false
+          return
+        }
+        state.settings[input.name] = input.checked
+        // The click on the switch came before sound was on, so it did not allow audio yet
+        if (input.name === 'sound') unlockAudio()
+        renderNotifyHint()
+        save()
+        render()
+      })
+
+      // The export holds the tasks and the focus time of each day, with times in milliseconds as they are stored
+      $('#exportBtn').addEventListener('click', () => {
+        const json = JSON.stringify({ tasks: state.tasks, stats: state.stats }, null, 2)
+        const a = Object.assign(document.createElement('a'), {
+          href: URL.createObjectURL(new Blob([json], { type: 'application/json' })),
+          download: `pomotrack-${dayKey()}.json`,
+        })
+        a.click()
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+      })
+
+      // An import takes a file in the format of the export. It replaces the tasks and the tracked time, and keeps the
+      // settings, the timer and the round. A focus session that runs on counts for the imported tasks from then on.
+      function parseImport(text) {
+        try {
+          const raw = JSON.parse(text)
+          if (!isObject(raw) || !Array.isArray(raw.tasks) || !isObject(raw.stats)) return null
+          return { tasks: normalizeTasks(raw.tasks), stats: normalizeStats(raw.stats) }
+        } catch {
+          return null
+        }
+      }
+      function importData({ tasks, stats }) {
+        creditFocusTime()
+        state.tasks = tasks
+        state.stats = stats
+        state.activeId = normalizeActiveId(tasks, state.activeId)
+        editing.clear()
+        save()
+        $('#settingsDialog').close()
+        render()
+        snackbar(`Imported ${plural(tasks.length, 'task')}`)
+      }
+      let pendingImport = null
+      $('#importBtn').addEventListener('click', () => $('#importFile').click())
+      $('#importFile').addEventListener('change', async (e) => {
+        const file = e.target.files[0]
+        e.target.value = ''
+        if (!file) return
+        const data = parseImport(await file.text())
+        if (!data) snackbar('This file is not a Pomotrack export. Nothing was changed.')
+        // Only data that would be lost needs a confirmation
+        else if (state.tasks.length || Object.keys(state.stats).length) {
+          pendingImport = data
+          $('#importDialog').showModal()
+        } else importData(data)
+      })
+      $('#confirmImport').addEventListener('click', () => {
+        const data = pendingImport
+        $('#importDialog').close()
+        if (data) importData(data)
+      })
+      $('#importDialog').addEventListener('close', () => (pendingImport = null))
+
+      $('#wipeBtn').addEventListener('click', () => $('#confirmDialog').showModal())
+      $('#confirmWipe').addEventListener('click', () => {
+        try {
+          localStorage.removeItem(KEY)
+          storedJson = null
+        } catch {}
+        state = normalize(null)
+        editing.clear()
+        closeAddForm(false)
+        $('#confirmDialog').close()
+        $('#settingsDialog').close()
+        render()
+        snackbar('All data deleted')
+      })
+
+      let installPrompt
+      window.addEventListener('beforeinstallprompt', (e) => {
+        installPrompt = e
+        $('#installBtn').hidden = false
+      })
+      // Also after an install from the browser menu
+      window.addEventListener('appinstalled', () => {
+        installPrompt = null
+        $('#installBtn').hidden = true
+      })
+      $('#installBtn').addEventListener('click', async () => {
+        if (!installPrompt) return
+        installPrompt.prompt()
+        await installPrompt.userChoice
+        installPrompt = null
+        $('#installBtn').hidden = true
+      })
+      if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+        navigator.serviceWorker.register('sw.js').catch(() => {})
+      }
+
+      // All open tabs share one state. A change in another tab replaces this tab's state, the last save wins.
+      window.addEventListener('storage', (e) => {
+        if (e.key === KEY || e.key === null) adopt()
+      })
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && pendingSnack) {
+          snackbar(pendingSnack)
+          pendingSnack = null
+        }
+        tick()
+      })
+
+      // Browsers throttle page timers in background tabs but not worker timers. Some forbid workers on file:// pages.
+      const tickHere = () => setInterval(tick, 250)
+      try {
+        const worker = new Worker(
+          URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),250)'], { type: 'text/javascript' })),
+        )
+        worker.onmessage = tick
+        worker.onerror = tickHere
+      } catch {
+        tickHere()
+      }
+
+      render()
+      tick()
+    </script>
+  </body>
+</html>
