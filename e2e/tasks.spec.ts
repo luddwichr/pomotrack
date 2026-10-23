@@ -344,6 +344,20 @@ test.describe('reordering tasks', () => {
     await expect(app.currentTask).toHaveText('Working on Write report')
   })
 
+  test('dragging a task to just below the top bar scrolls the page up', async ({ app }) => {
+    await app.page.setViewportSize({ width: 390, height: 600 })
+    await app.openWithTasks()
+    await app.page.mouse.wheel(0, 2000)
+    await expect.poll(() => app.page.evaluate(() => scrollY)).toBeGreaterThan(0)
+    const scrolled = await app.page.evaluate(() => scrollY)
+    const bar = await app.page.getByRole('banner').boundingBox()
+    await app.dragTask('Plan sprint', 'Plan sprint', 0.5, async () => {
+      const x = (await app.button('Move Plan sprint').boundingBox())!.x + 10
+      await app.page.mouse.move(x, bar!.y + bar!.height + 20, { steps: 8 })
+      await expect.poll(() => app.page.evaluate(() => scrollY)).toBeLessThan(scrolled)
+    })
+  })
+
   test('a drag released outside the list ends there, and the list keeps updating', async ({ app }) => {
     await app.openWithTasks()
     await app.dragTask('Write report', 'Plan sprint', 0.8, async () => {

@@ -27,6 +27,8 @@
         --scrim: rgb(0 0 0 / 0.32);
         --shadow-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
         --shadow-3: 0 1px 3px rgb(0 0 0 / 0.3), 0 4px 8px 3px rgb(0 0 0 / 0.15);
+        /* Height of the sticky top bar: its padding plus the 40px buttons */
+        --top-bar-height: calc(max(12px, env(safe-area-inset-top)) + 52px);
       }
       body[data-mode='focus'] {
         --primary: #1565c0;
@@ -150,6 +152,8 @@
       }
       html {
         -webkit-text-size-adjust: 100%;
+        /* Keeps focused elements clear of the sticky top bar */
+        scroll-padding-top: calc(var(--top-bar-height) + 16px);
       }
       body {
         margin: 0;
@@ -325,13 +329,18 @@
       }
 
       .top-bar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
         display: flex;
         align-items: center;
         gap: 4px;
-        max-width: 1080px;
-        margin: 0 auto;
-        padding: 12px 16px;
+        height: var(--top-bar-height);
+        /* The background spans the window, the content lines up with the 1080px layout */
+        padding: 12px max(16px, (100% - 1048px) / 2);
         padding-top: max(12px, env(safe-area-inset-top));
+        background: var(--surface);
+        transition: background-color 0.5s var(--ease);
       }
       .brand {
         display: flex;
@@ -362,7 +371,7 @@
         }
         .timer-card {
           position: sticky;
-          top: 16px;
+          top: var(--top-bar-height);
         }
       }
       .card {
@@ -2038,6 +2047,7 @@
 
       const els = {
         body: document.body,
+        topBar: $('.top-bar'),
         timeBtn: $('#timeBtn'),
         timeInput: $('#timeInput'),
         modeLabel: $('#modeLabel'),
@@ -2517,7 +2527,8 @@
         if (before !== drag.li.nextElementSibling) els.list.insertBefore(drag.li, before)
         drag.li.style.transform = ''
         drag.li.style.transform = `translateY(${y - drag.offset - drag.li.getBoundingClientRect().top}px)`
-        if (y < 48) scrollBy(0, -12)
+        // The sticky top bar covers the top of the window
+        if (y < els.topBar.getBoundingClientRect().bottom + 48) scrollBy(0, -12)
         else if (y > innerHeight - 48) scrollBy(0, 12)
       })
       function endDrag(commit) {

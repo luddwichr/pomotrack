@@ -145,4 +145,30 @@ test.describe('phone', () => {
       await expectNoA11yViolations(app.page)
     })
   }
+
+  test('the top bar stays at the top of the screen while the page scrolls', async ({ app }) => {
+    await app.page.setViewportSize({ width: 390, height: 600 })
+    await app.openWithHistory()
+    await app.page.mouse.wheel(0, 2000)
+    await expect.poll(() => app.page.evaluate(() => scrollY)).toBeGreaterThan(0)
+    expect((await app.page.getByRole('banner').boundingBox())?.y).toBe(0)
+    await expect(app.settingsButton).toBeInViewport()
+  })
+
+  test('a control reached with Shift+Tab is not hidden behind the top bar', async ({ app }) => {
+    await app.page.setViewportSize({ width: 390, height: 600 })
+    await app.openWithHistory()
+    const bar = app.page.getByRole('banner')
+    const barBottom = async () => {
+      const box = (await bar.boundingBox())!
+      return box.y + box.height
+    }
+    const buttonTop = async () => (await app.startButton.boundingBox())!.y
+    // Scroll until the Start button is under the top bar. The browser would not scroll to a button it sees on screen.
+    await app.page.mouse.wheel(0, (await buttonTop()) - 4)
+    await expect.poll(buttonTop).toBeLessThan(await barBottom())
+    await app.roundText.click()
+    await app.tabTo(app.startButton, { back: true })
+    expect(await buttonTop()).toBeGreaterThanOrEqual(await barBottom())
+  })
 })
