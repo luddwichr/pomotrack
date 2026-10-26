@@ -36,9 +36,9 @@ Pomodoro timer and task time tracker. Frontend only, no build step, no backend.
 
 ## Use
 
-- **Single file:** `index.html` is self-contained. Open it in a browser to use the app.
-- **Installable app with offline support:** host the folder over HTTPS. `manifest.webmanifest`, the icons and `sw.js` make it installable and let it work offline.
-- **Built for GitHub Pages:** GitHub Pages serves the folder as it is, without a build step, from a sub-path like `https://<user>.github.io/pomotrack/`. The comments in `sw.js` explain how the service worker handles that.
+- **Single file:** `dist/index.html` is self-contained. Open it in a browser to use the app.
+- **Installable app with offline support:** host the `dist` folder over HTTPS. `manifest.webmanifest`, the icons and `sw.js` make it installable and let it work offline.
+- **Built for GitHub Pages:** `dist` holds everything that is deployed, as it is, without a build step. The workflow in `.github/workflows/pages.yml` deploys it on every push to `main`. GitHub Pages serves it from a sub-path like `https://<user>.github.io/pomotrack/`. The comments in `dist/sw.js` explain how the service worker handles that.
 
 ## Tests
 

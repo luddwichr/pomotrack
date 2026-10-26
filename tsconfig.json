@@ -1,5 +1,5 @@
 {
-  // The app itself is plain JavaScript in index.html and sw.js. TypeScript covers the e2e suite and tooling.
+  // The app itself is plain JavaScript in dist/index.html and dist/sw.js. TypeScript covers the e2e suite and tooling.
   "compilerOptions": {
     "target": "ES2025",
     "lib": ["ES2025", "DOM"],

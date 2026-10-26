@@ -2,7 +2,8 @@ import { readFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { resolve } from 'node:path'
 
-const ROOT = resolve(import.meta.dirname, '..')
+// The folder that GitHub Pages deploys
+const ROOT = resolve(import.meta.dirname, '..', 'dist')
 // Loopback only, so the server is not reachable from other machines on the network
 const HOST = '127.0.0.1'
 const PORT = Number(process.env['PORT'] ?? 4173)
@@ -10,7 +11,7 @@ const PORT = Number(process.env['PORT'] ?? 4173)
 // playwright.config.ts uses the same path.
 const BASE_PATH = '/pomotrack/'
 
-// Allow-list of request paths. Anything else, including other files in the repo, gets a 404.
+// Allow-list of request paths. Anything else gets a 404.
 const FILES = new Map([
   ['', { file: 'index.html', type: 'text/html; charset=utf-8' }],
   ['sw.js', { file: 'sw.js', type: 'text/javascript; charset=utf-8' }],
