@@ -1,8 +1,8 @@
 import { expect, test } from './support/fixtures'
-import { MINUTE, NOW, dayKey, storedState, task, timer } from './support/state'
+import { MINUTE, NOW, dayKey, storedState, task } from './support/state'
 
 // The app keeps its data in the browser's localStorage. These tests write that storage directly, to check data that
-// an earlier version or a broken browser profile may have left. See STORAGE_KEY in support/state.ts.
+// a broken browser profile may have left. See STORAGE_KEY in support/state.ts.
 
 test('unknown and invalid stored values fall back to the defaults', async ({ app }) => {
   await app.openWithStoredData(
@@ -39,7 +39,7 @@ test('unknown and invalid stored values fall back to the defaults', async ({ app
   await expect(app.settingsDialog.getByRole('switch', { name: 'Browser notifications' })).not.toBeChecked()
 })
 
-test('a stored current task that is gone or finished hands over to the first open task', async ({ app }) => {
+test('a stored task worked on that is gone or finished leaves nothing worked on', async ({ app }) => {
   await app.openWithStoredData(
     storedState({
       tasks: [
@@ -49,7 +49,7 @@ test('a stored current task that is gone or finished hands over to the first ope
       activeId: 'a',
     }),
   )
-  await expect(app.currentTask).toHaveText('Working on Write report')
+  await expect(app.currentTask).toHaveText('Choose a task to track time on it.')
 })
 
 test('stored data that is not JSON is replaced by an empty start', async ({ app }) => {
@@ -57,15 +57,6 @@ test('stored data that is not JSON is replaced by an empty start', async ({ app 
   await expect(app.page.getByText('No tasks yet.')).toBeVisible()
   await app.addTasks([{ title: 'Write report' }])
   await app.expectTasks(['Write report'])
-})
-
-test('an interval paused by an earlier version waits for Start with its full time', async ({ app }) => {
-  await app.openWithStoredData(
-    JSON.stringify({ ...storedState(), timer: { ...timer('short', 5), remainingMs: 2 * MINUTE } }),
-  )
-  await app.expectMode('short')
-  await expect(app.time).toHaveText('05:00')
-  await expect(app.mainButton).toHaveText('Start')
 })
 
 test('when the browser storage is full, the app keeps working in the open tab', async ({ app }) => {

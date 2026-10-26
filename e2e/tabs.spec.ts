@@ -9,7 +9,7 @@ test('a change in one tab shows up in the other tabs', async ({ app }) => {
 
   await app.button('Delete Plan sprint').click()
   await otherTab.expectTasks(['Write report', 'Review pull requests'])
-  await otherTab.selectTask('Review pull requests')
+  await otherTab.workOn('Review pull requests')
   await expect(app.currentTask).toHaveText('Working on Review pull requests')
   await otherTab.setTime('15')
   await expect(app.time).toHaveText('15:00')
@@ -49,7 +49,7 @@ test('when a session ends, the focused tab plays the chime and every tab shows t
     await tab.expectMode('short')
     await expect(tab.snackbar).toHaveText('Focus session done. Time for a short break.')
     await expect(tab.todaySummary, 'the session counts once').toHaveText('Today 25 min focused · 1 pomodoro')
-    await expect(tab.task('Write report')).toContainText('1/3')
+    await expect(tab.task('Write report')).toContainText('25 min / 1 h 15 min')
   }
   expect(await chimesHere()).toBe(1)
   expect(await chimesThere()).toBe(0)

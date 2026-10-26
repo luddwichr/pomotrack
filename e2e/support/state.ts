@@ -1,6 +1,6 @@
 /**
- * The format the app keeps in localStorage. Only storage.spec.ts, which checks data of earlier versions and broken
- * data, writes it directly. All other tests build their data through the app.
+ * The format the app keeps in localStorage. Only storage.spec.ts, which checks broken data, writes it directly.
+ * All other tests build their data through the app.
  */
 export const STORAGE_KEY = 'pomotrack.v1'
 export const MINUTE = 60_000
@@ -28,9 +28,9 @@ export interface Settings {
 export interface Task {
   id: string
   title: string
-  est: number
-  notes: string
-  pomos: number
+  estMs: number
+  /** The focus sessions the task got time in */
+  sessions: number
   spentMs: number
   done: boolean
   createdAt: number
@@ -44,11 +44,15 @@ export interface Timer {
   endAt: number | null
   /** Start of the focus time that has not yet been credited. Only set while a focus session runs. */
   segStart: number | null
+  /** The task ids, and '@other', that got focus time in the running session */
+  worked: string[]
 }
 
 export interface DayStats {
   focusMs: number
   pomos: number
+  otherMs: number
+  otherSessions: number
 }
 
 export interface StoredState {
@@ -68,7 +72,7 @@ export function dayKey(time: number): string {
 }
 
 export function task(fields: Partial<Task> & Pick<Task, 'id' | 'title'>): Task {
-  return { est: 1, notes: '', pomos: 0, spentMs: 0, done: false, createdAt: NOW - DAY, doneAt: null, ...fields }
+  return { estMs: 25 * MINUTE, sessions: 0, spentMs: 0, done: false, createdAt: NOW - DAY, doneAt: null, ...fields }
 }
 
 export function finishedTask(fields: Partial<Task> & Pick<Task, 'id' | 'title' | 'doneAt'>): Task {
@@ -76,7 +80,7 @@ export function finishedTask(fields: Partial<Task> & Pick<Task, 'id' | 'title' |
 }
 
 export function timer(mode: Mode, minutes: number, fields: Partial<Timer> = {}): Timer {
-  return { mode, durationMs: minutes * MINUTE, endAt: null, segStart: null, ...fields }
+  return { mode, durationMs: minutes * MINUTE, endAt: null, segStart: null, worked: [], ...fields }
 }
 
 export function storedState(fields: Partial<StoredState> = {}): StoredState {

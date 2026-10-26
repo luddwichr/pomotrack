@@ -17,10 +17,8 @@ test('the whole app can be used with standard keys only', async ({ app }) => {
   await page.keyboard.press('Enter')
   await expect(app.titleField(app.addForm)).toBeFocused()
   await page.keyboard.type('Write report')
-  await app.tabTo(app.addForm.getByRole('spinbutton', { name: 'Estimated pomodoros' }))
+  await app.tabTo(app.addForm.getByRole('spinbutton', { name: 'Estimate in minutes' }))
   await page.keyboard.press('ArrowUp')
-  await app.tabTo(app.addForm.getByRole('textbox', { name: 'Notes' }))
-  await page.keyboard.type('Intro and numbers')
   await app.tabTo(app.addForm.getByRole('button', { name: 'Add task' }))
   await page.keyboard.press('Enter')
   await expect(app.titleField(app.addForm), 'the form stays open for the next task').toBeFocused()
@@ -31,14 +29,11 @@ test('the whole app can be used with standard keys only', async ({ app }) => {
   await page.keyboard.press('Escape')
   await expect(app.addTaskButton).toBeFocused()
   await app.expectTasks(['Write report', 'Review pull requests', 'Plan sprint'])
-  await expect(app.task('Write report')).toContainText('0/2')
-  await expect(app.task('Write report')).toContainText('Intro and numbers')
+  await expect(app.task('Write report')).toContainText('0 min / 30 min')
 
-  // The arrow keys move the current task within the radio group
-  await app.tabTo(app.task('Write report').getByRole('radio'), { back: true })
-  await page.keyboard.press('ArrowDown')
-  await expect(app.currentTask).toHaveText('Working on Review pull requests')
-  await page.keyboard.press('ArrowUp')
+  // Work on a task
+  await app.tabTo(app.workButton('Write report'), { back: true })
+  await page.keyboard.press('Enter')
   await expect(app.currentTask).toHaveText('Working on Write report')
 
   // Run a focus session
@@ -47,7 +42,7 @@ test('the whole app can be used with standard keys only', async ({ app }) => {
   await expect(app.mainButton).toHaveText('Skip')
   await page.clock.fastForward(FOCUS_SESSION)
   await app.expectMode('short')
-  await expect(app.task('Write report')).toContainText('1/2')
+  await expect(app.task('Write report')).toContainText('25 min / 30 min')
 
   // Change the time of the break, start it and skip it with the main button
   await app.tabTo(app.time, { back: true })
@@ -65,9 +60,12 @@ test('the whole app can be used with standard keys only', async ({ app }) => {
   await page.keyboard.press('Enter')
   await app.expectMode('focus')
 
-  // Finish the current task, it moves to the history and the next one takes over
+  // Finish the current task. It moves to the history, and focus moves to the open tasks to select the next one.
   await app.tabTo(app.finishButton)
   await page.keyboard.press('Enter')
+  await expect(app.currentTask).toHaveText('Choose a task to track time on it.')
+  await expect(app.workButton('Review pull requests')).toBeFocused()
+  await page.keyboard.press('Space')
   await expect(app.currentTask).toHaveText('Working on Review pull requests')
   await app.expectTasks(['Review pull requests', 'Plan sprint'])
 

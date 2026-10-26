@@ -97,7 +97,7 @@ test.describe('dialogs', () => {
       'Edit time of this interval, before Start',
       'New task',
       'Finish current task',
-      'Select next or previous task',
+      'Work on next or previous task',
       'Move task (on its drag handle)',
       'Show or hide history',
       'Show this list',
@@ -141,9 +141,8 @@ test.describe('export', () => {
         {
           ...added,
           title: 'Write report',
-          est: 3,
-          notes: 'Intro and numbers',
-          pomos: 1,
+          estMs: 75 * MINUTE,
+          sessions: 2,
           spentMs: focusMs,
           done: false,
           doneAt: null,
@@ -151,16 +150,15 @@ test.describe('export', () => {
         {
           ...added,
           title: 'Review pull requests',
-          est: 2,
-          notes: '',
-          pomos: 0,
+          estMs: 50 * MINUTE,
+          sessions: 0,
           spentMs: 0,
           done: true,
           doneAt: finishedAt,
         },
-        { ...added, title: 'Plan sprint', est: 1, notes: '', pomos: 0, spentMs: 0, done: false, doneAt: null },
+        { ...added, title: 'Plan sprint', estMs: 25 * MINUTE, sessions: 0, spentMs: 0, done: false, doneAt: null },
       ],
-      stats: { '2026-10-21': { focusMs, pomos: 1 } },
+      stats: { '2026-10-21': { focusMs, pomos: 1, otherMs: 0, otherSessions: 0 } },
     })
   })
 
@@ -170,7 +168,7 @@ test.describe('export', () => {
 
     const { data } = await app.exportJson()
     expect(data.tasks[0]).toMatchObject({ title: 'Write report', spentMs: 10 * MINUTE })
-    expect(data.stats['2026-10-21']).toEqual({ focusMs: 10 * MINUTE, pomos: 0 })
+    expect(data.stats['2026-10-21']).toEqual({ focusMs: 10 * MINUTE, pomos: 0, otherMs: 0, otherSessions: 0 })
   })
 })
 
@@ -189,8 +187,11 @@ test.describe('import', () => {
     await expect(app.importDialog, 'no data would be lost, so there is nothing to confirm').toBeHidden()
     await expect(app.snackbar).toHaveText('Imported 3 tasks')
     await app.expectTasks(['Write report', 'Review pull requests'])
-    await expect(app.currentTask).toHaveText('Working on Write report')
-    await expect(app.task('Write report')).toContainText('1/3')
+    await expect(app.currentTask, 'the import does not start work on a task').toHaveText(
+      'Choose a task to track time on it.',
+    )
+    await expect(app.task('Write report')).toContainText('25 min / 1 h 15 min')
+    await expect(app.task('Write report')).toContainText('1 session')
     await expect(app.todaySummary).toHaveText('Today 25 min focused · 1 pomodoro')
     await app.historyToggle.click()
     await app.expectHistory(['Plan sprint'])
@@ -212,7 +213,9 @@ test.describe('import', () => {
     await app.importDialog.getByRole('button', { name: 'Replace' }).click()
     await expect(app.settingsDialog).toBeHidden()
     await app.expectTasks(['Imported task'])
-    await expect(app.currentTask).toHaveText('Working on Imported task')
+    await expect(app.currentTask, 'the current task is gone, and the import does not select another one').toHaveText(
+      'Choose a task to track time on it.',
+    )
   })
 
   test('an import keeps the settings, the timer and the round, and a running session counts for the imported tasks', async ({
@@ -228,6 +231,7 @@ test.describe('import', () => {
 
     await app.chooseImportFile({ tasks: [task({ id: 'x', title: 'Imported task' })], stats: {} })
     await app.importDialog.getByRole('button', { name: 'Replace' }).click()
+    await app.workOn('Imported task')
     await expect(app.mainButton, 'the session keeps running').toHaveText('Skip')
     await expect(app.time).toHaveText('15:00')
     await expect(app.roundText).toHaveText('Session 2 of 4')
@@ -237,7 +241,7 @@ test.describe('import', () => {
 
     await app.page.clock.fastForward(15 * MINUTE)
     await app.expectMode('short')
-    await expect(app.task('Imported task')).toContainText('1/1')
+    await expect(app.task('Imported task')).toContainText('1 session')
     await expect(app.task('Imported task')).toContainText('15 min')
     await expect(app.todaySummary).toHaveText('Today 15 min focused · 1 pomodoro')
     await app.settingsButton.click()

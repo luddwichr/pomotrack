@@ -18,7 +18,7 @@ test('the skip link is the first Tab stop and moves focus to the tasks', async (
 test('each message reaches screen readers once, also when it is shown in the snackbar', async ({ app }) => {
   await app.openWithTasks()
   await app.shortcut('f')
-  const message = 'Finished "Write report". Now working on "Review pull requests"'
+  const message = 'Finished "Write report"'
   await expect(app.snackbar).toHaveText(message)
   await expect(app.announcer).toHaveText(message)
   const liveRegions = app.page.locator(

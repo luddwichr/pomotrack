@@ -27,13 +27,12 @@ test('the history lists the days newest first, with their focus totals and the t
     'a day with focus time but no finished task',
   ).toContainText('No tasks finished')
   await app.expectHistory(['Done today', 'Old task from yesterday', 'Older task'])
-  await expect(app.historyItem('Old task from yesterday')).toContainText('Some notes')
 
   await app.historyToggle.click()
   await expect(app.historyDays).toHaveCount(0)
 })
 
-test('a finished task shows its pomodoros against the estimate and its focus time of all days, under the day it was finished', async ({
+test('a finished task shows its sessions, and its focus time of all days against the estimate, under the day it was finished', async ({
   app,
 }) => {
   await app.openWithHistory()
@@ -43,7 +42,7 @@ test('a finished task shows its pomodoros against the estimate and its focus tim
     'Yesterday 25 min focused · 1 pomodoro',
     { useInnerText: true },
   )
-  await expect(yesterday.getByRole('listitem')).toContainText('2/1 · 50 min')
+  await expect(yesterday.getByRole('listitem')).toContainText('2 sessions · 50 min / 25 min')
 })
 
 test('the tasks of a day are listed in the order they were finished', async ({ app }) => {
@@ -59,7 +58,7 @@ test('days of an earlier year show the year', async ({ app }) => {
   await app.page.clock.setSystemTime(new Date('2025-12-25T10:00:00+01:00'))
   await app.open()
   await app.addTasks([{ title: 'Last year' }])
-  await app.finishButton.click()
+  await app.button('Finish Last year').click()
   await app.page.clock.pauseAt(NOW)
   await app.historyToggle.click()
   await expect(app.historyDays).toHaveText(['Thu, Dec 25, 2025 0 min focused · 0 pomodoros'], {

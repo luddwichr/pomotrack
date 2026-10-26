@@ -8,14 +8,14 @@ const MODE_LABELS: Record<Mode, string> = { focus: 'Focus', short: 'Short break'
 
 export interface NewTask {
   title: string
+  /** Estimate in minutes */
   est?: number
-  notes?: string
 }
 
-/** The three open tasks most tests start with. The first one becomes the current task. */
+/** The three open tasks most tests start with */
 export const THREE_TASKS: NewTask[] = [
-  { title: 'Write report', est: 3, notes: 'Intro and numbers' },
-  { title: 'Review pull requests', est: 2 },
+  { title: 'Write report', est: 75 },
+  { title: 'Review pull requests', est: 50 },
   { title: 'Plan sprint' },
 ]
 
@@ -24,15 +24,14 @@ export interface ExportedData {
   tasks: {
     id: string
     title: string
-    est: number
-    notes: string
-    pomos: number
+    estMs: number
+    sessions: number
     spentMs: number
     done: boolean
     createdAt: number
     doneAt: number | null
   }[]
-  stats: Record<string, { focusMs: number; pomos: number }>
+  stats: Record<string, { focusMs: number; pomos: number; otherMs: number; otherSessions: number }>
 }
 
 /**
@@ -88,7 +87,7 @@ export class App {
     this.skipButton = page.getByRole('button', { name: /^Skip( to next step)?$/ })
     this.finishButton = page.getByRole('button', { name: 'Finish', exact: true })
     this.roundText = page.getByText(/^(Session \d+ of \d+|\d+ of \d+ sessions done)$/)
-    this.currentTask = page.getByText(/^(Working on |Add a task to track time)/)
+    this.currentTask = this.timerRegion.getByText(/^(Working on |(Add|Choose) a task to track time)/)
 
     this.taskList = page.getByRole('list', { name: 'Tasks' })
     this.addTaskButton = page
@@ -118,10 +117,11 @@ export class App {
     await expect(this.time).toBeVisible()
   }
 
-  /** Opens the app with the three tasks of THREE_TASKS, added through the form. "Write report" is the current task. */
+  /** Opens the app with the three tasks of THREE_TASKS, added through the form, and works on "Write report". */
   async openWithTasks(): Promise<void> {
     await this.open()
     await this.addTasks(THREE_TASKS)
+    await this.workOn('Write report')
   }
 
   /**
@@ -129,45 +129,47 @@ export class App {
    * Each day has one focus session of 25 minutes:
    *
    * - Sun, Oct 18: on "Older task", which is then finished.
-   * - Mon, Oct 19: on "Old task from yesterday", with notes and 1 estimated pomodoro. No task is finished on this day.
-   * - Yesterday: on "Old task from yesterday" again, which is then finished. "Write report" (3 estimated pomodoros) and
-   *   "Review pull requests" (2) are added.
-   * - Today, at 8:00: on "Done today", which is then finished. "Write report" is the current task afterwards.
+   * - Mon, Oct 19: on "Old task from yesterday", estimated at 25 minutes. No task is finished on this day.
+   * - Yesterday: on "Old task from yesterday" again, which is then finished. "Write report" (estimated at 75 minutes) and
+   *   "Review pull requests" (50 minutes) are added.
+   * - Today, at 8:00: on "Done today", which is then finished. Afterwards the user works on "Write report".
    */
   async openWithHistory(): Promise<void> {
     await this.page.clock.setSystemTime(NOW - 3 * DAY)
     await this.page.clock.pauseAt(NOW - 3 * DAY + HOUR)
     await this.open()
     await this.addTasks([{ title: 'Older task' }])
+    await this.workOn('Older task')
     await this.completeFocusSession()
     await this.finishButton.click()
 
     await this.page.clock.pauseAt(NOW - 2 * DAY + HOUR)
-    await this.addTasks([{ title: 'Old task from yesterday', est: 1, notes: 'Some notes' }])
+    await this.addTasks([{ title: 'Old task from yesterday', est: 25 }])
+    await this.workOn('Old task from yesterday')
     await this.completeFocusSession()
 
     await this.page.clock.pauseAt(NOW - DAY + HOUR)
     await this.completeFocusSession()
     await this.finishButton.click()
     await this.addTasks([
-      { title: 'Write report', est: 3 },
-      { title: 'Review pull requests', est: 2 },
+      { title: 'Write report', est: 75 },
+      { title: 'Review pull requests', est: 50 },
     ])
 
     await this.page.clock.pauseAt(NOW - HOUR)
     await this.addTasks([{ title: 'Done today' }])
-    await this.selectTask('Done today')
+    await this.workOn('Done today')
     await this.completeFocusSession()
     await this.finishButton.click()
+    await this.workOn('Write report')
     await this.page.clock.pauseAt(NOW)
     await this.page.clock.resume()
-    await expect(this.currentTask).toHaveText('Working on Write report')
   }
 
   /**
-   * Opens the app with data written straight into its storage, as an earlier version or a broken browser profile
-   * might have left it. A string is stored as it is. Later reloads keep the app's own changes.
-   * Only for tests of stored data. Other tests build their data through the app.
+   * Opens the app with data written straight into its storage, as a broken browser profile might have left it. A string
+   * is stored as it is. Later reloads keep the app's own changes. Only for tests of stored data. Other tests build
+   * their data through the app.
    */
   async openWithStoredData(data: StoredState | string): Promise<void> {
     await this.page.addInitScript(
@@ -250,7 +252,7 @@ export class App {
   }
 
   estimateField(form: Locator): Locator {
-    return form.getByRole('spinbutton', { name: 'Estimated pomodoros' })
+    return form.getByRole('spinbutton', { name: 'Estimate in minutes' })
   }
 
   async expectMode(mode: Mode, message?: string): Promise<void> {
@@ -284,7 +286,7 @@ export class App {
     await expect(this.mode).not.toHaveText(mode ?? '')
   }
 
-  /** Runs a whole focus session on the current task and skips the break after it, so the next session can start. */
+  /** Runs a whole focus session and skips the break after it, so the next session can start. */
   async completeFocusSession(): Promise<void> {
     await this.expectMode('focus')
     await this.run()
@@ -310,9 +312,17 @@ export class App {
     return container.getByRole('listitem').filter({ has: this.page.getByText(title, { exact: true }) })
   }
 
-  /** Each listed task has a radio button, named by the task title, that makes it the current task. */
+  /** Each listed task has a Work on button, named by the task title. */
   async expectTasks(titles: string[]): Promise<void> {
-    await expectNames(this.taskList.getByRole('radio'), titles)
+    await expectNames(
+      this.taskList.getByRole('button', { name: /^Work on / }),
+      titles.map((title) => `Work on ${title}`),
+    )
+  }
+
+  /** The Work on button of a listed task, or of Other */
+  workButton(title: string): Locator {
+    return this.page.getByRole('button', { name: `Work on ${title}`, exact: true })
   }
 
   async expectHistory(titles: string[]): Promise<void> {
@@ -322,18 +332,17 @@ export class App {
       await expect(items.nth(i).getByText(title, { exact: true })).toBeVisible()
   }
 
-  /** Makes a task the current one by clicking its title. */
-  async selectTask(title: string): Promise<void> {
-    await this.task(title).getByText(title, { exact: true }).click()
+  /** Starts working on a task, or on Other, with its Work on button */
+  async workOn(title: string): Promise<void> {
+    await this.workButton(title).click()
     await expect(this.currentTask).toHaveText(`Working on ${title}`)
   }
 
   /** Adds a task through the form. The form stays open for the next task. */
-  async addTask(title: string, { est, notes }: Omit<NewTask, 'title'> = {}): Promise<void> {
+  async addTask(title: string, { est }: Omit<NewTask, 'title'> = {}): Promise<void> {
     if (await this.addTaskButton.isVisible()) await this.addTaskButton.click()
     await this.titleField(this.addForm).fill(title)
     if (est !== undefined) await this.estimateField(this.addForm).fill(String(est))
-    if (notes !== undefined) await this.addForm.getByRole('textbox', { name: 'Notes' }).fill(notes)
     await this.addForm.getByRole('button', { name: 'Add task' }).click()
   }
 

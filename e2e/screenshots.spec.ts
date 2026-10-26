@@ -27,6 +27,7 @@ async function openSampleDay(app: App, mode: Mode, left?: number): Promise<void>
   await app.open()
   await app.turnOnNotifications()
   await app.chooseImportFile(sampleDayFile(mode === 'focus' ? ran : 0))
+  await app.workOn('Write project proposal')
   for (let i = 0; i < SKIPS[mode]; i++) await app.skipButton.click()
   await app.expectMode(mode)
   await app.page.clock.fastForward(10_000)
@@ -61,7 +62,14 @@ for (const colorScheme of ['light', 'dark'] as const) {
     test('history of earlier days', async ({ app, page }) => {
       await openSampleDay(app, 'focus', 14 * MINUTE + 12_000)
       await app.historyToggle.click()
-      await app.expectHistory(['Reply to customer emails', 'Update onboarding guide', 'Fix login bug', 'Plan sprint'])
+      await app.expectHistory([
+        'Reply to customer emails',
+        'Update onboarding guide',
+        'Fix login bug',
+        'Other',
+        'Plan sprint',
+        'Other',
+      ])
       await app.blur()
       await page.mouse.move(0, 0)
       await expect(page.getByRole('region', { name: 'Tasks', exact: true })).toHaveScreenshot(png('history'))

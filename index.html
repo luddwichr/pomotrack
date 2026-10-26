@@ -167,8 +167,7 @@
         -webkit-font-smoothing: antialiased;
       }
       button,
-      input,
-      textarea {
+      input {
         font: inherit;
         color: inherit;
       }
@@ -671,15 +670,13 @@
       .task.active::after {
         transform: scaleY(1);
       }
-      .task:has(.task-radio:focus-visible) {
-        outline: 3px solid var(--primary);
-        outline-offset: 2px;
-      }
       .task-main {
         flex: 1;
         min-width: 0;
-        padding: 8px 4px;
-        cursor: pointer;
+        padding: 8px 4px 8px 12px;
+      }
+      .task:has(.drag-handle) .task-main {
+        padding-left: 4px;
       }
       .task-title {
         display: block;
@@ -694,8 +691,7 @@
         font-size: 0.8125rem;
         color: var(--on-surface-variant);
       }
-      .task.active .task-meta,
-      .task.active .task-notes {
+      .task.active .task-meta {
         color: inherit;
       }
       .task-meta span {
@@ -707,13 +703,6 @@
         width: 16px;
         height: 16px;
       }
-      .task-notes {
-        margin: 6px 0 0;
-        font-size: 0.875rem;
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
-        color: var(--on-surface-variant);
-      }
       .task-actions {
         display: flex;
         flex: none;
@@ -721,6 +710,27 @@
       .task .icon-btn {
         color: inherit;
         opacity: 0.8;
+      }
+      .task .icon-btn[aria-pressed='true'] {
+        background: var(--primary);
+        color: var(--on-primary);
+        opacity: 1;
+      }
+      .task.other {
+        margin-top: 8px;
+      }
+      /* On narrow screens the buttons of a row go below its title */
+      @media (max-width: 480px) {
+        .task {
+          flex-wrap: wrap;
+        }
+        .task-main {
+          flex-basis: calc(100% - 40px);
+        }
+        .task-actions {
+          width: 100%;
+          justify-content: flex-end;
+        }
       }
       .drag-handle {
         width: 28px;
@@ -738,42 +748,6 @@
       body.is-dragging * {
         cursor: grabbing !important;
         user-select: none;
-      }
-
-      /* A button that looks like an empty checkbox. Finished tasks leave the list, so it never shows a checked state. */
-      .checkbox {
-        position: relative;
-        display: grid;
-        place-items: center;
-        flex: none;
-        width: 40px;
-        height: 40px;
-        margin: 0;
-        padding: 0;
-        border: 0;
-        border-radius: 50%;
-        background: transparent;
-      }
-      .checkbox:hover {
-        background: color-mix(in srgb, currentColor 8%, transparent);
-      }
-      .checkbox::before {
-        content: '';
-        width: 18px;
-        height: 18px;
-        border: 2px solid var(--on-surface-variant);
-        border-radius: 2px;
-      }
-      .checkbox:hover::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        margin: auto;
-        width: 14px;
-        height: 14px;
-        background: var(--on-surface-variant);
-        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E")
-          center / contain no-repeat;
       }
 
       .empty {
@@ -828,7 +802,7 @@
         letter-spacing: 0.03em;
         color: var(--on-surface-variant);
       }
-      .field :is(input, textarea) {
+      .field input {
         width: 100%;
         padding: 12px 14px;
         border: 1px solid var(--outline);
@@ -837,13 +811,7 @@
         color: var(--on-surface);
         font-size: 1rem;
       }
-      .field textarea {
-        resize: vertical;
-        min-height: 64px;
-        line-height: 1.4;
-      }
-      .field input:focus,
-      .field textarea:focus {
+      .field input:focus {
         outline: none;
         border-color: var(--primary);
         box-shadow: inset 0 0 0 1px var(--primary);
@@ -969,14 +937,6 @@
         display: block;
         color: var(--on-surface);
         overflow-wrap: anywhere;
-      }
-      .history-item .h-notes {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        white-space: pre-wrap;
-        font-size: 0.8125rem;
       }
       .history-item .h-meta {
         flex: none;
@@ -1182,6 +1142,8 @@
 
     <svg width="0" height="0" style="position: absolute" aria-hidden="true">
       <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></symbol>
       <symbol id="i-skip" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" /></symbol>
       <symbol id="i-settings" viewBox="0 0 24 24">
         <path
@@ -1321,6 +1283,7 @@
         <ul class="task-list" id="taskList" aria-labelledby="tasks-heading"></ul>
         <p class="visually-hidden" id="dragHelp">Drag to reorder, or press the up and down arrow keys.</p>
         <p class="empty" id="emptyState" hidden></p>
+        <div id="otherRow"></div>
         <button type="button" class="add-btn state-layer" id="addBtn" title="Add task (N)">
           <svg class="icon"><use href="#i-add" /></svg>Add task
         </button>
@@ -1414,7 +1377,7 @@
               <td><kbd>F</kbd></td>
             </tr>
             <tr>
-              <th scope="row">Select next or previous task</th>
+              <th scope="row">Work on next or previous task</th>
               <td><kbd>J</kbd> <kbd>K</kbd></td>
             </tr>
             <tr>
@@ -1445,7 +1408,7 @@
       <div class="dialog-head"><h2 id="confirm-title">Delete all data?</h2></div>
       <div class="dialog-body">
         <p id="confirm-text" style="margin: 0">
-          All tasks, notes, tracked time and settings will be removed from this browser. This cannot be undone.
+          All tasks, tracked time and settings will be removed from this browser. This cannot be undone.
         </p>
       </div>
       <div class="dialog-foot">
@@ -1489,11 +1452,20 @@
       // A round has this many focus sessions, and the last one is followed by a long break
       const LONG_EVERY = 4
       const DEFAULT_SETTINGS = { notify: false, sound: true }
+      // Working on something outside the listed tasks. It is not a valid task id, see isId.
+      const OTHER = '@other'
+      const MAX_EST_MIN = 720
 
       // The main button skips a running interval, except right after a click started it, so a double click only starts
       const SKIP_DELAY = 1000
       // An interval waits for Start, then runs until its end or until it is skipped
-      const freshTimer = (mode) => ({ mode, durationMs: MODES[mode].durationMs, endAt: null, segStart: null })
+      const freshTimer = (mode) => ({
+        mode,
+        durationMs: MODES[mode].durationMs,
+        endAt: null,
+        segStart: null,
+        worked: [],
+      })
 
       const isObject = (v) => !!v && typeof v === 'object'
       const isTime = (v) => Number.isFinite(v)
@@ -1522,9 +1494,8 @@
         return {
           id: t.id,
           title: t.title,
-          est: count(t.est),
-          notes: typeof t.notes === 'string' ? t.notes : '',
-          pomos: count(t.pomos),
+          estMs: count(t.estMs),
+          sessions: count(t.sessions),
           spentMs: count(t.spentMs),
           done,
           createdAt: isTime(t.createdAt) ? t.createdAt : Date.now(),
@@ -1534,7 +1505,13 @@
       function normalizeStats(raw) {
         const stats = {}
         for (const [key, st] of Object.entries(raw)) {
-          if (isDayKey(key) && isObject(st)) stats[key] = { focusMs: count(st.focusMs), pomos: count(st.pomos) }
+          if (!isDayKey(key) || !isObject(st)) continue
+          stats[key] = {
+            focusMs: count(st.focusMs),
+            pomos: count(st.pomos),
+            otherMs: count(st.otherMs),
+            otherSessions: count(st.otherSessions),
+          }
         }
         return stats
       }
@@ -1551,16 +1528,18 @@
           const startAt = endAt - durationMs
           segStart = isTime(t.segStart) && t.segStart >= startAt && t.segStart <= endAt ? t.segStart : startAt
         }
-        return { mode, durationMs, endAt, segStart }
+        // What got focus time in the running session, so each task and Other count the session once
+        const worked =
+          segStart !== null && Array.isArray(t.worked) ? t.worked.filter((id) => isId(id) || id === OTHER) : []
+        return { mode, durationMs, endAt, segStart, worked }
       }
       function normalizeTasks(raw) {
         const ids = new Set()
         return (Array.isArray(raw) ? raw : []).map(normalizeTask).filter((t) => t && !ids.has(t.id) && ids.add(t.id))
       }
-      // While there are open tasks, one of them is current
+      // The user works on an open task, on Other, or on nothing. The app never picks one.
       function normalizeActiveId(tasks, id) {
-        const open = tasks.filter((t) => !t.done)
-        return open.some((t) => t.id === id) ? id : (open[0]?.id ?? null)
+        return id === OTHER || tasks.some((t) => t.id === id && !t.done) ? id : null
       }
       function normalize(raw) {
         const s = isObject(raw) ? raw : {}
@@ -1611,15 +1590,11 @@
         )
       const icon = (name) => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`
       const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
-      const EMPTY_STATS = { focusMs: 0, pomos: 0 }
+      const EMPTY_STATS = { focusMs: 0, pomos: 0, otherMs: 0, otherSessions: 0 }
       const statsFor = (key) => state.stats[key] || EMPTY_STATS
       const dayStats = (time) => (state.stats[dayKey(new Date(time))] ??= { ...EMPTY_STATS })
       const pluralWord = (n, word) => `${word}${n === 1 ? '' : 's'}`
       const plural = (n, word) => `${n} ${pluralWord(n, word)}`
-      const pomodoroLabels = (t) =>
-        t.est > 0
-          ? { shown: `${t.pomos}/${t.est}`, spoken: `${t.pomos} of ${t.est} pomodoros` }
-          : { shown: `${t.pomos}`, spoken: plural(t.pomos, 'pomodoro') }
 
       function fmtClock(ms) {
         const total = Math.ceil(ms / 1000)
@@ -1717,8 +1692,10 @@
           : state.timer.durationMs
       const findTask = (id) => state.tasks.find((t) => t.id === id)
       const activeTask = () => state.tasks.find((t) => t.id === state.activeId && !t.done) || null
+      const onOther = () => state.activeId === OTHER
 
-      // Focus time goes to the current task, if there is one, and to the day it was spent on, split at midnight
+      // Focus time goes to the task being worked on, or to Other, and to the day it was spent on, split at midnight.
+      // A task, or Other on that day, counts each focus session it got time in once, also when it got only part of it.
       function creditFocusTime(until = Date.now()) {
         const t = state.timer
         if (t.mode !== 'focus' || t.segStart == null) return
@@ -1728,10 +1705,19 @@
         if (until <= from) return
         t.segStart = until
         const task = activeTask()
-        if (task) task.spentMs += until - from
+        const workId = task?.id ?? (onOther() ? OTHER : null)
+        const newSession = workId !== null && !t.worked.includes(workId)
+        if (newSession) t.worked.push(workId)
+        if (task) {
+          task.spentMs += until - from
+          if (newSession) task.sessions++
+        }
+        if (onOther() && newSession) dayStats(from).otherSessions++
         for (let start = from; start < until;) {
           const end = Math.min(until, new Date(start).setHours(24, 0, 0, 0))
-          dayStats(start).focusMs += end - start
+          const day = dayStats(start)
+          day.focusMs += end - start
+          if (onOther()) day.otherMs += end - start
           start = end
         }
       }
@@ -1760,12 +1746,8 @@
         const t = state.timer
         creditFocusTime(t.endAt)
         const finished = t.mode
-        if (finished === 'focus') {
-          // The pomodoro goes to the task that is current when the session ends, and to the day it ends on
-          const task = activeTask()
-          if (task) task.pomos++
-          dayStats(t.endAt).pomos++
-        }
+        // A finished focus session is a pomodoro of the day it ends on
+        if (finished === 'focus') dayStats(t.endAt).pomos++
         advance()
         save()
         render()
@@ -1781,7 +1763,7 @@
       }
 
       // An action that arrives after the interval ended, before the next tick noticed, first completes the interval.
-      // So a skip only completes it, and its pomodoro goes to the task that was current at its end.
+      // So a skip only completes it, and its focus time goes to what was worked on until its end.
       function catchUp() {
         if (isDue()) endDue(false)
       }
@@ -1946,40 +1928,34 @@
       // The list holds the open tasks. Finished tasks are in the history.
       const listTasks = () => state.tasks.filter((t) => !t.done)
 
-      function nextOpenTask(afterId) {
-        const open = state.tasks.filter((t) => !t.done && t.id !== afterId)
-        const idx = state.tasks.findIndex((t) => t.id === afterId)
-        return open.find((t) => state.tasks.indexOf(t) > idx) || open[0] || null
-      }
+      const workTitle = () => (onOther() ? 'Other' : activeTask()?.title)
 
-      function setActive(id) {
+      // Only the user chooses what they work on: a task, Other, or nothing
+      function workOn(id) {
         catchUp()
         if (state.activeId === id) return
         creditFocusTime()
         state.activeId = id
         save()
         render()
+        announce(id ? `Working on ${workTitle()}` : 'Not working on anything')
       }
+      // The Work on button of what is being worked on stops the work
+      const toggleWork = (id) => workOn(state.activeId === id ? null : id)
 
-      function addTask({ title, est, notes }) {
+      function addTask({ title, estMs }) {
         catchUp()
         const task = {
           id: uid(),
           title,
-          est,
-          notes,
-          pomos: 0,
+          estMs,
+          sessions: 0,
           spentMs: 0,
           done: false,
           createdAt: Date.now(),
           doneAt: null,
         }
         state.tasks.push(task)
-        // A new task becomes current when there was no open task
-        if (!activeTask()) {
-          creditFocusTime()
-          state.activeId = task.id
-        }
         save()
         render()
         announce(`Added task ${title}`)
@@ -1993,14 +1969,11 @@
         render()
       }
 
-      // When the current task leaves the list, the next open task below it takes over, or else the first one.
-      // Returns the part of the message that names the new current task.
-      function handOver(id) {
-        if (state.activeId !== id) return ''
+      // When the task being worked on leaves the list, nothing is worked on until the user chooses
+      function release(id) {
+        if (state.activeId !== id) return
         creditFocusTime()
-        const next = nextOpenTask(id)
-        state.activeId = next?.id ?? null
-        return next ? `. Now working on "${next.title}"` : ''
+        state.activeId = null
       }
 
       // Finishing moves a task to the history
@@ -2008,13 +1981,13 @@
         catchUp()
         const task = findTask(id)
         if (!task || task.done) return
-        const handedOver = handOver(id)
+        release(id)
         task.done = true
         task.doneAt = Date.now()
         editing.delete(id)
         save()
         render()
-        snackbar(`Finished "${task.title}"${handedOver}`)
+        snackbar(`Finished "${task.title}"`)
       }
 
       function finishActive() {
@@ -2027,22 +2000,20 @@
         catchUp()
         const task = findTask(id)
         if (!task) return
-        const handedOver = handOver(id)
+        release(id)
         state.tasks = state.tasks.filter((t) => t !== task)
         editing.delete(id)
         save()
         render()
-        snackbar(`Deleted "${task.title}"${handedOver}`)
+        snackbar(`Deleted "${task.title}"`)
       }
 
-      // J and K select the next or previous open task, wrapping around
+      // J and K work on the next or previous open task, with Other after the last one, wrapping around.
+      // Without anything being worked on, J starts with the first task and K with Other.
       function moveActive(dir) {
-        const open = listTasks()
-        if (!open.length) return
-        const i = open.findIndex((t) => t.id === state.activeId)
-        const next = open[(i + dir + open.length) % open.length]
-        setActive(next.id)
-        announce(`Current task: ${next.title}`)
+        const ids = [...listTasks().map((t) => t.id), OTHER]
+        const i = ids.indexOf(state.activeId)
+        workOn(i < 0 ? ids.at(dir > 0 ? 0 : -1) : ids[(i + dir + ids.length) % ids.length])
       }
 
       const els = {
@@ -2061,6 +2032,7 @@
         finishBtn: $('#finishBtn'),
         list: $('#taskList'),
         empty: $('#emptyState'),
+        other: $('#otherRow'),
         summary: $('#summary'),
         addBtn: $('#addBtn'),
         addSlot: $('#addFormSlot'),
@@ -2088,22 +2060,39 @@
         document.title = isRunning() ? `${clock} · ${MODES[t.mode].label}` : 'Pomotrack'
       }
 
-      // Crediting focus time while a session runs changes today's totals and the time of the current task, nothing else.
-      // They are updated in place when a shown minute changes, so no row is replaced under a click
+      // Crediting focus time while a session runs changes today's totals and the time of what is worked on, nothing else.
+      // They are updated in place when a shown minute or session count changes, so no row is replaced under a click
       // and the history is not rebuilt.
       let liveTotals = ''
-      const liveTotalsKey = () =>
-        `${fmtDuration(statsFor(dayKey()).focusMs)} ${fmtDuration(activeTask()?.spentMs ?? 0)}`
+      const liveTotalsKey = () => {
+        const today = statsFor(dayKey()),
+          task = activeTask()
+        return `${fmtDuration(today.focusMs)} ${fmtDuration(task?.spentMs ?? 0)} ${task?.sessions} ${fmtDuration(today.otherMs)} ${today.otherSessions}`
+      }
       function renderLiveTotals() {
         if (liveTotalsKey() === liveTotals) return
         liveTotals = liveTotalsKey()
         const task = activeTask()
-        const spent = task && els.list.querySelector(`[data-spent="${task.id}"]`)
-        if (spent) spent.textContent = fmtDuration(task.spentMs)
+        const today = statsFor(dayKey())
+        // The rows no longer match their markup, so the next render replaces them
+        const meta = task && els.list.querySelector(`[data-meta="${task.id}"]`)
+        if (meta) {
+          meta.innerHTML = taskMetaHTML(task)
+          rowMarkup.delete(meta.closest('[data-id]'))
+        }
+        const otherMeta = els.other.querySelector('[data-meta]')
+        if (otherMeta) {
+          otherMeta.innerHTML = otherMetaHTML(today)
+          rowMarkup.delete(els.other)
+        }
         renderSummary()
         const todayMeta = hist.root.open && hist.body.querySelector(`#hd-${dayKey()} .day-meta`)
-        if (todayMeta) todayMeta.textContent = dayMetaText(statsFor(dayKey()))
-        // Today is not in the history yet, or the history is closed and only its count may change
+        const otherLine = hist.root.open && hist.body.querySelector(`#ho-${dayKey()}`)
+        if (todayMeta && (otherLine || !today.otherMs)) {
+          todayMeta.textContent = dayMetaText(today)
+          if (otherLine) otherLine.innerHTML = otherHistoryMetaHTML(today)
+        }
+        // Today or its Other line is not in the history yet, or the history is closed and only its count may change
         else renderHistory()
       }
 
@@ -2150,11 +2139,16 @@
             : `${filled} of ${LONG_EVERY} sessions done`
 
         const task = activeTask()
-        els.currentText.innerHTML = task
-          ? `Working on <strong>${esc(task.title)}</strong>`
-          : 'Add a task to track time on it.'
-        // Finishing the last open task hides the Finish button, so its focus moves on to adding a task
-        if (!task && document.activeElement === els.finishBtn) focusAddTask()
+        const open = listTasks()
+        els.currentText.innerHTML = state.activeId
+          ? `Working on <strong>${esc(workTitle())}</strong>`
+          : open.length
+            ? 'Choose a task to track time on it.'
+            : 'Add a task to track time on it.'
+        // Finishing the task hides the Finish button, so its focus moves on to choosing or adding the next task
+        if (!task && document.activeElement === els.finishBtn) {
+          if (!open.length || !focusInRow(open[0].id, '[data-work]')) focusAddTask()
+        }
         els.finishBtn.hidden = !task
         renderTime(true)
       }
@@ -2169,17 +2163,13 @@
                placeholder="What are you working on?" value="${esc(task?.title ?? '')}">
       </div>
       <div class="field">
-        <span class="field-label" id="est-label-${id}">Estimated pomodoros</span>
+        <span class="field-label" id="est-label-${id}">Estimate in minutes</span>
         <div class="stepper" role="group" aria-labelledby="est-label-${id}">
-          <button type="button" class="icon-btn tonal state-layer" data-step="-1" aria-label="One less">${icon('remove')}</button>
-          <input type="number" name="est" min="0" max="99" value="${task ? task.est : 1}" aria-labelledby="est-label-${id}" aria-describedby="est-help-${id}">
-          <button type="button" class="icon-btn tonal state-layer" data-step="1" aria-label="One more">${icon('add')}</button>
+          <button type="button" class="icon-btn tonal state-layer" data-step="-1" aria-label="5 minutes less">${icon('remove')}</button>
+          <input type="number" name="est" min="0" max="${MAX_EST_MIN}" step="5" value="${task ? Math.round(task.estMs / MIN) : 25}" aria-labelledby="est-label-${id}" aria-describedby="est-help-${id}">
+          <button type="button" class="icon-btn tonal state-layer" data-step="1" aria-label="5 minutes more">${icon('add')}</button>
         </div>
         <p class="helper" id="est-help-${id}">0 means no estimate.</p>
-      </div>
-      <div class="field">
-        <label for="notes-${id}">Notes</label>
-        <textarea id="notes-${id}" name="notes" rows="2" maxlength="2000" placeholder="Optional">${esc(task?.notes ?? '')}</textarea>
       </div>
       <div class="form-actions">
         <button type="button" class="btn text state-layer" data-cancel>Cancel</button>
@@ -2191,39 +2181,71 @@
       const rowActionHTML = (attr, verb, iconName, title) =>
         `<button type="button" class="icon-btn state-layer" ${attr} aria-label="${verb} ${esc(title)}" title="${verb}">${icon(iconName)}</button>`
 
+      // Pressed while it is being worked on. Its description is the time tracked on it.
+      const workButtonHTML = (key, title, active) =>
+        `<button type="button" class="icon-btn state-layer" data-work aria-pressed="${active}" aria-label="Work on ${esc(title)}" aria-describedby="m-${key}" title="${active ? 'Stop working on this' : 'Work on this'}">${icon(active ? 'pause' : 'play')}</button>`
+
+      // Time tracked against the estimate, and the number of focus sessions it got time in
+      function metaHTML(spentMs, estMs, sessions) {
+        const spent = fmtDuration(spentMs)
+        const est = estMs > 0 ? fmtDuration(estMs) : ''
+        return `<span title="Time tracked / estimated">${icon('schedule')}<span aria-hidden="true">${spent}${est ? ` / ${est}` : ''}</span><span class="visually-hidden">${spent} tracked${est ? ` of ${est} estimated` : ''}, </span></span>
+          <span title="Focus sessions worked in">${icon('timer')}${plural(sessions, 'session')}</span>`
+      }
+      const taskMetaHTML = (task) => metaHTML(task.spentMs, task.estMs, task.sessions)
+      const otherMetaHTML = (today) => `<span>Today</span>${metaHTML(today.otherMs, 0, today.otherSessions)}`
+
       function taskRowHTML(task) {
         const active = task.id === state.activeId
-        const pomodoros = pomodoroLabels(task)
         const draft = editing.get(task.id)
         if (draft) return `<li class="task" data-id="${task.id}">${taskFormHTML(draft)}</li>`
         return `
     <li class="task${active ? ' active' : ''}" data-id="${task.id}">
       <button type="button" class="icon-btn state-layer drag-handle" data-drag aria-label="Move ${esc(task.title)}" aria-describedby="dragHelp" title="Drag to reorder">${icon('drag')}</button>
-      <button type="button" class="checkbox" data-finish aria-label="Finish ${esc(task.title)}" title="Finish"></button>
-      <label class="task-main">
-        <input type="radio" class="task-radio visually-hidden" name="active-task" value="${task.id}"
-               ${active ? 'checked' : ''} aria-labelledby="t-${task.id}" aria-describedby="m-${task.id}">
-        <span class="task-title" id="t-${task.id}">${esc(task.title)}</span>
-        <span class="task-meta" id="m-${task.id}">
-          <span title="Pomodoros done / estimated">${icon('timer')}<span class="visually-hidden">${pomodoros.spoken}</span><span aria-hidden="true">${pomodoros.shown}</span></span>
-          <span title="Focus time tracked">${icon('schedule')}<span class="visually-hidden">Time tracked: </span><span data-spent="${task.id}">${fmtDuration(task.spentMs)}</span></span>
-        </span>
-        ${task.notes ? `<p class="task-notes">${esc(task.notes)}</p>` : ''}
-      </label>
+      <div class="task-main">
+        <span class="task-title">${esc(task.title)}</span>
+        <span class="task-meta" id="m-${task.id}" data-meta="${task.id}">${taskMetaHTML(task)}</span>
+      </div>
       <span class="task-actions">
+        ${workButtonHTML(task.id, task.title, active)}
         ${rowActionHTML('data-edit', 'Edit', 'edit', task.title)}
+        ${rowActionHTML('data-finish', 'Finish', 'check', task.title)}
         ${rowActionHTML('data-delete', 'Delete', 'delete', task.title)}
       </span>
     </li>`
       }
 
-      const ROW_CONTROLS = ['[data-drag]', '[data-finish]', '.task-radio', '[data-edit]', '[data-delete]']
+      // Other is always there, for focus time on anything outside the listed tasks. It is tracked per day.
+      function otherRowHTML() {
+        const active = onOther()
+        return `
+    <div class="task other${active ? ' active' : ''}">
+      <div class="task-main">
+        <span class="task-title">Other</span>
+        <span class="task-meta" id="m-other" data-meta>${otherMetaHTML(statsFor(dayKey()))}</span>
+      </div>
+      <span class="task-actions">${workButtonHTML('other', 'Other', active)}</span>
+    </div>`
+      }
+
+      // Replaced only when it changes, and its focused button keeps the focus
+      function renderOther() {
+        const html = otherRowHTML().trim()
+        if (rowMarkup.get(els.other) === html) return
+        const hadFocus = els.other.contains(document.activeElement)
+        els.other.innerHTML = html
+        rowMarkup.set(els.other, html)
+        if (hadFocus) $('[data-work]', els.other).focus({ preventScroll: true })
+      }
+
+      const ROW_CONTROLS = ['[data-drag]', '[data-work]', '[data-edit]', '[data-finish]', '[data-delete]']
       const rowMarkup = new WeakMap()
       const template = document.createElement('template')
 
       function renderTasks() {
         // Rows are not re-rendered during a drag, because that would replace the row being dragged. endDrag catches up.
         if (!drag) renderRows()
+        renderOther()
         renderEmpty()
         renderSummary()
         renderHistory()
@@ -2334,16 +2356,33 @@
 
       const dayMetaText = (st) => `${fmtDuration(st.focusMs)} focused · ${plural(st.pomos, 'pomodoro')}`
 
-      function historyItemHTML(t) {
-        const pomodoros = pomodoroLabels(t)
-        return `
+      // Sessions worked in, and time tracked against the estimate
+      function historyMetaHTML(spentMs, estMs, sessions) {
+        const spent = fmtDuration(spentMs)
+        const est = estMs > 0 ? fmtDuration(estMs) : ''
+        return `${plural(sessions, 'session')} · <span aria-hidden="true">${spent}${est ? ` / ${est}` : ''}</span><span class="visually-hidden">${spent} tracked${est ? ` of ${est} estimated` : ''}</span>`
+      }
+      const otherHistoryMetaHTML = (st) => historyMetaHTML(st.otherMs, 0, st.otherSessions)
+
+      const historyItemHTML = (title, metaHTML, id = '') => `
     <li class="history-item">
       <div class="h-main">
-        <span class="h-title">${esc(t.title)}</span>
-        ${t.notes ? `<span class="h-notes">${esc(t.notes)}</span>` : ''}
+        <span class="h-title">${esc(title)}</span>
       </div>
-      <span class="h-meta"><span class="visually-hidden">${pomodoros.spoken}, </span><span aria-hidden="true">${pomodoros.shown} · </span>${fmtDuration(t.spentMs)}</span>
+      <span class="h-meta"${id ? ` id="${id}"` : ''}>${metaHTML}</span>
     </li>`
+
+      // The tasks finished on a day, and the time on Other that day
+      function historyDayHTML(key, tasks) {
+        const st = statsFor(key)
+        const items = tasks.map((t) => historyItemHTML(t.title, historyMetaHTML(t.spentMs, t.estMs, t.sessions)))
+        if (st.otherMs > 0) items.push(historyItemHTML('Other', otherHistoryMetaHTML(st), `ho-${key}`))
+        return `
+      <section class="history-day" aria-labelledby="hd-${key}">
+        <h3 id="hd-${key}"><span>${esc(fmtDay(key))}</span><span class="day-meta">${dayMetaText(st)}</span></h3>
+        ${tasks.length ? '' : '<p class="history-none">No tasks finished</p>'}
+        ${items.length ? `<ul>${items.join('')}</ul>` : ''}
+      </section>`
       }
 
       function renderHistory() {
@@ -2355,15 +2394,7 @@
           hist.body.innerHTML = ''
           return
         }
-        hist.body.innerHTML = days
-          .map(
-            ([key, tasks]) => `
-      <section class="history-day" aria-labelledby="hd-${key}">
-        <h3 id="hd-${key}"><span>${esc(fmtDay(key))}</span><span class="day-meta">${dayMetaText(statsFor(key))}</span></h3>
-        ${tasks.length ? `<ul>${tasks.map(historyItemHTML).join('')}</ul>` : '<p class="history-none">No tasks finished</p>'}
-      </section>`,
-          )
-          .join('')
+        hist.body.innerHTML = days.map(([key, tasks]) => historyDayHTML(key, tasks)).join('')
       }
 
       function toggleHistory() {
@@ -2404,8 +2435,8 @@
           announce('Task name is required')
           return null
         }
-        const est = Math.max(0, Math.min(99, parseInt(form.est.value, 10) || 0))
-        return { title, est, notes: form.notes.value.trim() }
+        const est = Math.max(0, Math.min(MAX_EST_MIN, parseInt(form.est.value, 10) || 0))
+        return { title, estMs: est * MIN }
       }
 
       document.addEventListener('submit', (e) => {
@@ -2453,21 +2484,17 @@
           e.preventDefault()
           cancelForm(form)
         }
-        if (form && e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target.tagName === 'TEXTAREA') {
-          e.preventDefault()
-          form.requestSubmit()
-        }
       })
       document.addEventListener('input', (e) => e.target.removeAttribute('aria-invalid'))
 
-      els.list.addEventListener('change', (e) => {
-        const li = e.target.closest('[data-id]')
-        if (li && e.target.matches('.task-radio')) setActive(li.dataset.id)
+      els.other.addEventListener('click', (e) => {
+        if (e.target.closest('[data-work]')) toggleWork(OTHER)
       })
       els.list.addEventListener('click', (e) => {
         const li = e.target.closest('[data-id]')
         if (!li) return
-        if (e.target.closest('[data-finish]')) finishTask(li.dataset.id)
+        if (e.target.closest('[data-work]')) toggleWork(li.dataset.id)
+        else if (e.target.closest('[data-finish]')) finishTask(li.dataset.id)
         else if (e.target.closest('[data-delete]')) deleteTask(li.dataset.id)
         else if (e.target.closest('[data-edit]')) {
           editing.set(li.dataset.id, { ...findTask(li.dataset.id) })
@@ -2656,7 +2683,7 @@
         if (document.querySelector('dialog[open]')) return
         const el = document.activeElement ?? document.body
         // Shortcuts pause in text fields, and anywhere in a task form, where F could finish the task being edited
-        if (el.matches('input:not([type=checkbox]):not([type=radio]), textarea') || el.closest('[data-form]')) return
+        if (el.matches('input:not([type=checkbox]):not([type=radio])') || el.closest('[data-form]')) return
         if (e.key === ' ') {
           // Space never skips, also not on the main button while the interval runs
           if (el === els.startBtn && isRunning()) {

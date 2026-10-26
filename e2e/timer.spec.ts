@@ -132,8 +132,8 @@ test.describe('pomodoro cycle', () => {
     await expect(app.roundText).toHaveText('1 of 4 sessions done')
     await expect(app.snackbar).toHaveText('Skipped focus. Time for a short break. Press Start when you are.')
     await expect(app.todaySummary).toHaveText('Today 10 min focused · 0 pomodoros')
-    await expect(app.task('Write report')).toContainText('0/3')
-    await expect(app.task('Write report')).toContainText('10 min')
+    await expect(app.task('Write report')).toContainText('10 min / 1 h 15 min')
+    await expect(app.task('Write report'), 'the task was worked on in the session').toContainText('1 session')
   })
 
   test('the round carries over to the next day and over a reload', async ({ app }) => {
@@ -268,11 +268,11 @@ test.describe('right at the end of a session', () => {
     )
   })
 
-  test('selecting another task leaves the pomodoro with the task that was current at the end', async ({ app }) => {
-    await app.selectTask('Plan sprint')
+  test('working on another task leaves the whole session with the task worked on until its end', async ({ app }) => {
+    await app.workOn('Plan sprint')
     await app.expectMode('short')
-    await expect(app.task('Write report')).toContainText('1/3')
-    await expect(app.task('Plan sprint')).toContainText('0/1')
+    await expect(app.task('Write report')).toContainText('25 min / 1 h 15 min')
+    await expect(app.task('Plan sprint')).toContainText('0 sessions')
   })
 })
 
@@ -464,8 +464,9 @@ test.describe('coming back after the interval ended', () => {
     await expect(app.mainButton, 'only that interval completes, the next one waits for Start').toHaveText('Start')
     await expect(app.snackbar).toHaveText('Focus session done while you were away. Time for a short break.')
     await expect(app.roundText).toHaveText('1 of 4 sessions done')
-    await expect(app.task('Write report'), 'the time after the app was closed counts too').toContainText('1/3')
-    await expect(app.task('Write report')).toContainText('25 min')
+    await expect(app.task('Write report'), 'the time after the app was closed counts too').toContainText(
+      '25 min / 1 h 15 min',
+    )
   })
 
   test('a break that ended while the app was closed is completed on the next visit', async ({ app }) => {
@@ -497,8 +498,7 @@ test.describe('coming back after the interval ended', () => {
     await expect(app.snackbar).toHaveText('Focus session done while you were away. Time for a short break.')
     expect(await chimes()).toBe(0)
     expect(await notifications()).toEqual([])
-    await expect(app.task('Write report')).toContainText('1/3')
-    await expect(app.task('Write report')).toContainText('25 min')
+    await expect(app.task('Write report')).toContainText('25 min / 1 h 15 min')
   })
 
   test('a session that ended while the app was in a background tab shows its message when the user comes back', async ({

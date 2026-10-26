@@ -8,10 +8,11 @@ Pomodoro timer and task time tracker. Frontend only, no build step, no backend.
 
 - **Pomodoro timer:** focus sessions of 25 minutes with a short break after each one, and a long break after every fourth. Each interval starts when you click Start, and you can skip it.
 - **Adjust a single interval:** before you press Start, click the time and type a new one. Only this interval changes.
-- **Task list:** write down what you want to work on, with notes and an estimate of pomodoros. Edit and delete tasks, and drag them into a new order.
-- **Current task:** one open task is the current task. Focus time and finished sessions count for the current task and for the day.
-- **Finish tasks:** mark a task as done at any time, also during a session. The timer keeps running and the next task takes over.
-- **History:** finished tasks move into a history grouped by day. It shows the focus time and pomodoros of each day, and how many sessions each task took against its estimate.
+- **Task list:** write down what you want to work on, with an estimate in minutes. Edit and delete tasks, and drag them into a new order.
+- **Work on a task:** press Work on next to the task you work on. Each task tracks its focus time and the number of focus sessions it got time in, also partial ones.
+- **Other:** work on Other for focus time outside the listed tasks. Its time and sessions are tracked per day.
+- **Finish tasks:** mark a task as done at any time, also during a session. The timer keeps running, and you choose the next task yourself.
+- **History:** finished tasks move into a history grouped by day. It shows the focus time and pomodoros of each day, the time on Other, and how long each task took against its estimate.
 - **Daily overview:** see today's focus time and pomodoros.
 - **Reminders:** a sound and an optional desktop notification tell you when an interval ends. The app has to be open in a tab or window for this.
 - **Several tabs:** all open tabs of the app show the same tasks and the same timer.
@@ -50,14 +51,14 @@ The end-to-end tests in `e2e/` use [Playwright](https://playwright.dev). They ar
 | `history.spec.ts`       | History and day boundaries                                                                          |
 | `tabs.spec.ts`          | The app open in several tabs                                                                        |
 | `dialogs.spec.ts`       | Settings, export and import, deleting all data, the list of shortcuts                               |
-| `storage.spec.ts`       | Stored data from earlier versions and broken data                                                   |
+| `storage.spec.ts`       | Broken stored data                                                                                  |
 | `keyboard-only.spec.ts` | The whole app with Tab, Enter, Space, Escape and the arrow keys, without a mouse or shortcuts       |
 | `a11y.spec.ts`          | Accessibility checks with axe-core (WCAG 2.2 AA), screen reader messages, phone layout              |
 | `pwa.spec.ts`           | Installation and offline use                                                                        |
 | `screenshots.spec.ts`   | The reference screenshots in `docs/`                                                                |
 
 The test server serves the app from a sub-path, like GitHub Pages does.
-Tests find elements by role, accessible name or visible text, the way users and screen readers do, never by id or CSS class. They build their data through the app and check what it shows or exports. Larger sample data, like the sample day of the screenshots, comes in through Import JSON. Only `storage.spec.ts` writes the stored data directly, to check data of earlier versions and broken data.
+Tests find elements by role, accessible name or visible text, the way users and screen readers do, never by id or CSS class. They build their data through the app and check what it shows or exports. Larger sample data, like the sample day of the screenshots, comes in through Import JSON. Only `storage.spec.ts` writes the stored data directly, to check broken data.
 Tests click buttons by default. Each feature's keyboard shortcuts have their own `keyboard shortcuts` block in its spec file.
 A fake clock fast-forwards through sessions, and every test fails if the browser console shows a message.
 The screenshots in `docs/` double as reference images, each view in light and dark mode. A test fails when a view no longer looks like its screenshot.
