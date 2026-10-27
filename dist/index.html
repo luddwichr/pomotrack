@@ -965,6 +965,11 @@
       dialog::backdrop {
         background: var(--scrim);
       }
+      /* The page behind a modal dialog does not scroll. It keeps the room of its scrollbar, so it does not shift. */
+      html:has(dialog:modal) {
+        overflow: hidden;
+        padding-right: var(--scrollbar-width, 0px);
+      }
       dialog[open] {
         animation: pop 0.2s var(--ease);
       }
@@ -2754,7 +2759,13 @@
         // Messages shown in the dialog go back to the page. See showIn.
         d.addEventListener('close', () => document.body.append($('#snackbar'), $('#announcer')))
       })
-      const showShortcuts = () => $('#shortcutsDialog').showModal()
+      // A dialog opened from another one finds the scrollbar of the page gone already
+      function showModal(dialog) {
+        const root = document.documentElement
+        if (!$('dialog:modal')) root.style.setProperty('--scrollbar-width', `${innerWidth - root.clientWidth}px`)
+        dialog.showModal()
+      }
+      const showShortcuts = () => showModal($('#shortcutsDialog'))
       $('#shortcutsBtn').addEventListener('click', showShortcuts)
       const settingsForm = $('#settingsForm')
       // The switch shows the setting. A hint tells when the browser does not allow notifications at the moment.
@@ -2769,7 +2780,7 @@
       $('#settingsBtn').addEventListener('click', () => {
         for (const key of ['notify', 'sound']) settingsForm.elements[key].checked = state.settings[key]
         renderNotifyHint()
-        $('#settingsDialog').showModal()
+        showModal($('#settingsDialog'))
       })
 
       settingsForm.addEventListener('change', async (e) => {
@@ -2830,7 +2841,7 @@
         // Only data that would be lost needs a confirmation
         else if (state.tasks.length || Object.keys(state.stats).length) {
           pendingImport = data
-          $('#importDialog').showModal()
+          showModal($('#importDialog'))
         } else importData(data)
       })
       $('#confirmImport').addEventListener('click', () => {
@@ -2840,7 +2851,7 @@
       })
       $('#importDialog').addEventListener('close', () => (pendingImport = null))
 
-      $('#wipeBtn').addEventListener('click', () => $('#confirmDialog').showModal())
+      $('#wipeBtn').addEventListener('click', () => showModal($('#confirmDialog')))
       $('#confirmWipe').addEventListener('click', () => {
         try {
           localStorage.removeItem(KEY)

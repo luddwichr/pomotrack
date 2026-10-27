@@ -1,6 +1,9 @@
 import { expect, test } from './support/fixtures'
 import { FOCUS_SESSION, MINUTE, task } from './support/state'
 
+// Scrollbars take room, as in a desktop browser. Playwright hides them by default.
+test.use({ launchOptions: { ignoreDefaultArgs: ['--hide-scrollbars'] } })
+
 test.describe('settings', () => {
   test('settings are kept after a reload', async ({ app }) => {
     await app.open()
@@ -86,6 +89,32 @@ test.describe('dialogs', () => {
     await expect(app.shortcutsDialog).toBeVisible()
     await app.page.mouse.click(5, 5)
     await expect(app.shortcutsDialog).toBeHidden()
+  })
+
+  test('the page behind an open dialog does not scroll, and the dialog does', async ({ app }) => {
+    await app.page.setViewportSize({ width: 390, height: 400 })
+    await app.openWithHistory()
+    await app.settingsButton.click()
+    const scrolled = await app.page.evaluate(() => scrollY)
+    // Over the backdrop, then over the dialog. Once the dialog has scrolled, the first wheel is handled too.
+    await app.page.mouse.move(5, 200)
+    await app.page.mouse.wheel(0, 500)
+    const dialog = await app.settingsDialog.boundingBox()
+    await app.page.mouse.move(dialog!.x + dialog!.width / 2, dialog!.y + dialog!.height / 2)
+    await app.page.mouse.wheel(0, 2000)
+    await expect.poll(() => app.settingsDialog.evaluate((el) => el.scrollTop)).toBeGreaterThan(0)
+    expect(await app.page.evaluate(() => scrollY)).toBe(scrolled)
+  })
+
+  test('the page does not shift sideways when a dialog takes its scrollbar away', async ({ app }) => {
+    await app.page.setViewportSize({ width: 1200, height: 500 })
+    await app.openWithHistory()
+    const left = async () => (await app.startButton.boundingBox())!.x
+    const before = await left()
+    await app.settingsButton.click()
+    expect(await left()).toBe(before)
+    await app.settingsDialog.getByRole('button', { name: 'Delete all data' }).click()
+    expect(await left(), 'also with a second dialog on top').toBe(before)
   })
 
   test('the Keyboard shortcuts button lists all shortcuts', async ({ app }) => {
