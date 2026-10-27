@@ -1,0 +1,23 @@
+export const $ = (sel, root = document) => root.querySelector(sel)
+export const els = {
+  body: document.body,
+  topBar: $('.top-bar'),
+  timeBtn: $('#timeBtn'),
+  timeInput: $('#timeInput'),
+  modeLabel: $('#modeLabel'),
+  ring: $('#ringBar'),
+  startBtn: $('#startBtn'),
+  skipBtn: $('#skipBtn'),
+  editHint: $('#editHint'),
+  dots: $('#dots'),
+  roundText: $('#roundText'),
+  currentText: $('#currentTaskText'),
+  finishBtn: $('#finishBtn'),
+  list: $('#taskList'),
+  empty: $('#emptyState'),
+  other: $('#otherRow'),
+  summary: $('#summary'),
+  addBtn: $('#addBtn'),
+  addSlot: $('#addFormSlot'),
+  themeMeta: $('meta[name="theme-color"]'),
+}

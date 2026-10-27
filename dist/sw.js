@@ -1,7 +1,31 @@
 const PREFIX = 'pomotrack-'
 const CACHE = `${PREFIX}v1`
 const PAGE = './'
-const ASSETS = [PAGE, './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png']
+// Every file of the app, so it works offline. e2e/pwa.spec.ts checks that no file in dist is missing.
+const ASSETS = [
+  PAGE,
+  './app.css',
+  './js/main.js',
+  './js/alerts.js',
+  './js/dialogs.js',
+  './js/dom.js',
+  './js/drag.js',
+  './js/format.js',
+  './js/history-view.js',
+  './js/model.js',
+  './js/render.js',
+  './js/shortcuts.js',
+  './js/store.js',
+  './js/task-forms.js',
+  './js/tasks-view.js',
+  './js/tasks.js',
+  './js/timer-view.js',
+  './js/timer.js',
+  './manifest.webmanifest',
+  './icon.svg',
+  './icon-192.png',
+  './icon-512.png',
+]
 const SCOPE_PATH = new URL(self.registration.scope).pathname
 // The app page has several URLs: the folder, index.html, and both with any query string. They all share one cached
 // copy under PAGE, so each of them works offline and a visit to any of them updates the copy after a deploy.
@@ -31,34 +55,24 @@ self.addEventListener('fetch', (e) => {
   const req = e.request
   const url = new URL(req.url)
   if (req.method !== 'GET' || url.origin !== location.origin) return
-  if (req.mode !== 'navigate') e.respondWith(staleWhileRevalidate(e))
-  else if (isAppPage(url)) e.respondWith(networkFirst(e))
+  // The page, its style sheet and its modules have to come from the same deploy. A cached module that is older than
+  // the page would not match it. So every file comes from the network, and from the cache only when that fails.
+  if (req.mode !== 'navigate') e.respondWith(networkFirst(e, req))
+  else if (isAppPage(url)) e.respondWith(networkFirst(e, PAGE))
 })
 
-async function networkFirst(e) {
+async function networkFirst(e, key) {
   try {
     const res = await fetch(e.request, REVALIDATE)
     if (res.ok) {
-      e.waitUntil(cache.then((c) => c.put(PAGE, res.clone())))
+      e.waitUntil(cache.then((c) => c.put(key, res.clone())))
       return res
     }
     // A server error, for example during a deploy, shows the copy that worked last time
-    return (await (await cache).match(PAGE)) ?? res
+    return (await (await cache).match(key)) ?? res
   } catch {
-    return (await (await cache).match(PAGE)) ?? Response.error()
+    return (await (await cache).match(key)) ?? Response.error()
   }
-}
-
-async function staleWhileRevalidate(e) {
-  const c = await cache
-  const cached = await c.match(e.request)
-  const refresh = fetch(e.request, REVALIDATE).then((res) => {
-    if (res.ok) e.waitUntil(c.put(e.request, res.clone()))
-    return res
-  })
-  if (!cached) return refresh
-  e.waitUntil(refresh.catch(() => {}))
-  return cached
 }
 
 self.addEventListener('notificationclick', (e) => {

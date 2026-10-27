@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
-import { resolve } from 'node:path'
+import { extname, resolve, sep } from 'node:path'
 
 // The folder that GitHub Pages deploys
 const ROOT = resolve(import.meta.dirname, '..', 'dist')
@@ -11,25 +11,25 @@ const PORT = Number(process.env['PORT'] ?? 4173)
 // playwright.config.ts uses the same path.
 const BASE_PATH = '/pomotrack/'
 
-// Allow-list of request paths. Anything else gets a 404.
-const FILES = new Map([
-  ['', { file: 'index.html', type: 'text/html; charset=utf-8' }],
-  ['sw.js', { file: 'sw.js', type: 'text/javascript; charset=utf-8' }],
-  ['manifest.webmanifest', { file: 'manifest.webmanifest', type: 'application/manifest+json' }],
-  ['icon.svg', { file: 'icon.svg', type: 'image/svg+xml' }],
-  ['icon-192.png', { file: 'icon-192.png', type: 'image/png' }],
-  ['icon-512.png', { file: 'icon-512.png', type: 'image/png' }],
+// Files are served by extension. Anything else, or anything outside the folder, gets a 404.
+const TYPES = new Map([
+  ['.html', 'text/html; charset=utf-8'],
+  ['.css', 'text/css; charset=utf-8'],
+  ['.js', 'text/javascript; charset=utf-8'],
+  ['.webmanifest', 'application/manifest+json'],
+  ['.svg', 'image/svg+xml'],
+  ['.png', 'image/png'],
 ])
 
 createServer(async (req, res) => {
   const path = (req.url ?? '/').split('?', 1)[0]!
   if (path === '/') return void res.writeHead(302, { location: BASE_PATH }).end()
-  const entry = path.startsWith(BASE_PATH) && FILES.get(path.slice(BASE_PATH.length))
-  if (!entry) return void res.writeHead(404).end('Not found')
+  const file = path.startsWith(BASE_PATH) && resolve(ROOT, path.slice(BASE_PATH.length) || 'index.html')
+  const type = file && file.startsWith(ROOT + sep) && TYPES.get(extname(file))
+  if (!file || !type) return void res.writeHead(404).end('Not found')
   try {
-    const body = await readFile(resolve(ROOT, entry.file))
-    res.writeHead(200, { 'content-type': entry.type }).end(body)
+    res.writeHead(200, { 'content-type': type }).end(await readFile(file))
   } catch {
-    res.writeHead(500).end('Could not read file')
+    res.writeHead(404).end('Not found')
   }
 }).listen(PORT, HOST, () => console.log(`Serving ${ROOT} on http://${HOST}:${PORT}${BASE_PATH}`))

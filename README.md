@@ -1,6 +1,6 @@
 # Pomotrack
 
-Pomodoro timer and task time tracker. Frontend only, no build step, no backend.
+Pomodoro timer and task time tracker. Plain HTML, CSS and JavaScript modules: no dependencies, no framework, no build step, no backend.
 
 ![Pomotrack with a focus session in progress and the task list](docs/timer-light.png)
 
@@ -36,9 +36,13 @@ Pomodoro timer and task time tracker. Frontend only, no build step, no backend.
 
 ## Use
 
-- **Single file:** `dist/index.html` is self-contained. Open it in a browser to use the app.
+- **Served over HTTP:** host the `dist` folder on any static web server. Browsers do not load JavaScript modules from a file opened directly, so `npm run serve` serves it locally.
 - **Installable app with offline support:** host the `dist` folder over HTTPS. `manifest.webmanifest`, the icons and `sw.js` make it installable and let it work offline.
 - **Built for GitHub Pages:** `dist` holds everything that is deployed, as it is, without a build step. The workflow in `.github/workflows/pages.yml` deploys it on every push to `main`. GitHub Pages serves it from a sub-path like `https://<user>.github.io/pomotrack/`. The comments in `dist/sw.js` explain how the service worker handles that.
+
+## Code
+
+`dist/index.html` holds the markup, `dist/app.css` the styles, and `dist/js/` the script as JavaScript modules. `main.js` is the entry point. Each module covers one part, for example `timer.js` the Pomodoro cycle, `tasks.js` the task list, and `*-view.js` what the page shows of them. `dist/sw.js` lists every file of the app for offline use. A test fails when a file is missing there.
 
 ## Tests
 

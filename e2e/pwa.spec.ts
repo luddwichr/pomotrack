@@ -1,3 +1,4 @@
+import { readdirSync } from 'node:fs'
 import type { Page } from '@playwright/test'
 import { chromium } from '@playwright/test'
 import { App } from './support/app'
@@ -29,6 +30,20 @@ test('the app loads offline after the first visit', async ({ page, context }) =>
   await context.setOffline(true)
   await page.reload()
   await expect(new App(page).time).toHaveText('25:00')
+})
+
+test('the service worker stores every file of the app for offline use', async ({ page, baseURL }) => {
+  await page.goto('./')
+  await waitForServiceWorker(page)
+  const cached = await page.evaluate(async () => {
+    const cache = await caches.open((await caches.keys()).find((key) => key.startsWith('pomotrack-')) ?? '')
+    return (await cache.keys()).map((request) => request.url)
+  })
+  // sw.js itself is kept by the browser, index.html is cached as the folder
+  const files = readdirSync('dist', { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name !== 'sw.js')
+    .map((entry) => `${entry.parentPath}/${entry.name}`.replace(/^dist\/?/, '').replace(/^index\.html$/, ''))
+  expect(cached.sort()).toEqual(files.map((file) => new URL(file, baseURL).href).sort())
 })
 
 test('a reload picks up a new deploy instead of a stale cached copy', async ({ page, context, baseURL }) => {
