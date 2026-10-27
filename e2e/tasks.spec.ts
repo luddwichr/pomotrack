@@ -345,6 +345,32 @@ test.describe('reordering tasks', () => {
     await app.expectTasks(['Write report', 'Plan sprint', 'Review pull requests'])
   })
 
+  test('a task can also be dragged by its row outside its buttons', async ({ app }) => {
+    await app.openWithTasks()
+    await app.dragTaskByRow('Write report', 'Plan sprint', 0.8)
+    await app.expectTasks(['Review pull requests', 'Plan sprint', 'Write report'])
+  })
+
+  test.describe('on a touch screen', () => {
+    test.use({ hasTouch: true })
+
+    test('a task is dragged by its row after a long press', async ({ app }) => {
+      await app.openWithTasks()
+      await app.touchDragTask('Write report', 'Plan sprint', 0.8)
+      await app.expectTasks(['Review pull requests', 'Plan sprint', 'Write report'])
+    })
+
+    test('a swipe over the task rows scrolls the page and moves no task', async ({ app }) => {
+      await app.page.setViewportSize({ width: 390, height: 600 })
+      await app.openWithTasks()
+      await app.task('Plan sprint').scrollIntoViewIfNeeded()
+      const scrolled = await app.page.evaluate(() => scrollY)
+      await app.swipeTask('Plan sprint', -200)
+      await expect.poll(() => app.page.evaluate(() => scrollY)).toBeGreaterThan(scrolled)
+      await app.expectTasks(['Write report', 'Review pull requests', 'Plan sprint'])
+    })
+  })
+
   test('reordering does not change what is worked on', async ({ app }) => {
     await app.openWithTasks()
     await app.dragTask('Write report', 'Plan sprint', 0.8)

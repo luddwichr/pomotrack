@@ -390,15 +390,63 @@ export class App {
 
   /** Drags a task by its handle onto a part of another task. `whileHeld` runs before the mouse button is released. */
   async dragTask(title: string, onto: string, heightFraction: number, whileHeld?: () => Promise<void>): Promise<void> {
-    const handle = await this.button(`Move ${title}`).boundingBox()
+    await this.mouseDrag(this.button(`Move ${title}`), onto, heightFraction, whileHeld)
+  }
+
+  /** Drags a task by its title, outside its buttons, onto a part of another task */
+  async dragTaskByRow(title: string, onto: string, heightFraction: number): Promise<void> {
+    await this.mouseDrag(this.taskTitle(title), onto, heightFraction)
+  }
+
+  private async mouseDrag(
+    grip: Locator,
+    onto: string,
+    heightFraction: number,
+    whileHeld?: () => Promise<void>,
+  ): Promise<void> {
+    const from = await grip.boundingBox()
     const target = await this.task(onto).boundingBox()
-    if (!handle || !target) throw new Error('Task not visible')
-    const x = handle.x + handle.width / 2
-    await this.page.mouse.move(x, handle.y + handle.height / 2)
+    if (!from || !target) throw new Error('Task not visible')
+    const x = from.x + from.width / 2
+    await this.page.mouse.move(x, from.y + from.height / 2)
     await this.page.mouse.down()
     await this.page.mouse.move(x, target.y + target.height * heightFraction, { steps: 8 })
     await whileHeld?.()
     await this.page.mouse.up()
+  }
+
+  /** Long-presses the title of a task with a finger, and drags it onto a part of another task. Needs `hasTouch`. */
+  async touchDragTask(title: string, onto: string, heightFraction: number): Promise<void> {
+    const target = await this.task(onto).boundingBox()
+    if (!target) throw new Error('Task not visible')
+    // Longer than the long press of the app
+    await this.touch(title, 500, () => target.y + target.height * heightFraction)
+  }
+
+  /** Swipes a finger from the title of a task by `dy` pixels, without holding it first. Needs `hasTouch`. */
+  async swipeTask(title: string, dy: number): Promise<void> {
+    await this.touch(title, 0, (startY) => startY + dy)
+  }
+
+  /** Chromium's own touch input, so a finger that moves without holding first scrolls the page, as on a phone */
+  private async touch(title: string, holdMs: number, toY: (startY: number) => number): Promise<void> {
+    const from = await this.taskTitle(title).boundingBox()
+    if (!from) throw new Error('Task not visible')
+    const cdp = await this.page.context().newCDPSession(this.page)
+    const x = from.x + from.width / 2
+    const y = from.y + from.height / 2
+    const dy = toY(y) - y
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] })
+    await this.page.clock.fastForward(holdMs)
+    for (let step = 1; step <= 10; step++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y + (dy * step) / 10 }] })
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    await cdp.detach()
+  }
+
+  private taskTitle(title: string): Locator {
+    return this.taskList.getByText(title, { exact: true })
   }
 }
 
